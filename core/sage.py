@@ -161,7 +161,7 @@ class SAGE:
         """
         Full SAGE validation of an object
         
-        Returns: SAGE metadata
+        Returns: SAGE metadata with decision (allow/flag/deny)
         """
         # Calculate coherence
         coherence = self.coherence_check(obj, vector)
@@ -169,13 +169,26 @@ class SAGE:
         # Calculate trust
         trust = self.trust_score(obj.get("id", "unknown"), provenance or [])
         
-        # Determine if validated
-        validated = coherence >= self.COHERENCE_THRESHOLD and trust >= self.TRUST_THRESHOLD
+        # Decision logic (Milestone 2 contract)
+        if coherence >= 0.8 and trust >= 0.7:
+            decision = "allow"
+            validated = True
+            rationale = "Object meets coherence and trust thresholds"
+        elif coherence >= 0.6 and trust >= 0.5:
+            decision = "flag"
+            validated = False
+            rationale = "Object marginally coherent, flagged for review"
+        else:
+            decision = "deny"
+            validated = False
+            rationale = f"Coherence {coherence:.2f} or trust {trust:.2f} below threshold"
         
         return {
             "coherence_score": coherence,
             "trust_score": trust,
             "validated": validated,
+            "decision": decision,
+            "rationale": rationale,
             "thresholds": {
                 "coherence": self.COHERENCE_THRESHOLD,
                 "trust": self.TRUST_THRESHOLD

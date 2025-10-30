@@ -1,21 +1,15 @@
 """
-Core API - Semantic Kernel Interface
-FastAPI layer over the Core reasoning engine
+Core API - Semantic Kernel Interface (Milestone 2)
 
-Endpoints:
-- POST /api/core/ingest - Ingest new object
-- GET /api/core/object/{id} - Get reasoned object
-- GET /api/core/reason/{id} - Reason about object
-- GET /api/core/similar/{id} - Find similar objects
-- GET /api/core/query - Query objects
-- GET /api/core/types - List object types
-- GET / - Health check
+Clean JSON responses, no Pydantic response models.
+Enforces SAGE governance decisions.
+Exposes provenance for audit.
 """
 
-import os
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from reasoner import get_reasoner
@@ -23,76 +17,82 @@ from reasoner import get_reasoner
 # Initialize FastAPI
 app = FastAPI(
     title="Core - Semantic Kernel",
-    version="1.0.0",
-    description="Semantic reasoning engine for the Sovereignty Stack"
+    version="2.0.0",
+    description="Governed semantic reasoning engine for the Sovereignty Stack"
 )
 
 # CORS - Allow Mirror and other frontends
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:5000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:5000",
-        "*"  # Allow all for development
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Initialize reasoner
-DB_PATH = os.getenv("CORE_DB_PATH", "./core.db")
-ONTOLOGY_DIR = os.getenv("ONTOLOGY_DIR", "./ontology")
+reasoner = get_reasoner("./core.db", "./ontology")
 
-reasoner = get_reasoner(DB_PATH, ONTOLOGY_DIR)
+# ==================== SANITIZATION ====================
 
-# ==================== REQUEST/RESPONSE MODELS ====================
+def sanitize_for_json(obj: Any) -> Any:
+    """
+    Convert any object to JSON-serializable form
+    
+    - bytes → None (drop)
+    - numpy/decimal → float
+    - datetime → ISO string
+    - UUID → string
+    - dict/list → recursive
+    """
+    if obj is None:
+        return None
+    
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
+    
+    if isinstance(obj, bytes):
+        return None  # Drop bytes
+    
+    # Handle numpy types
+    if hasattr(obj, 'item'):  # numpy scalar
+        return float(obj.item())
+    
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    
+    if isinstance(obj, (list, tuple)):
+        return [sanitize_for_json(item) for item in obj]
+    
+    # Convert to string as fallback
+    return str(obj)
+
+# ==================== REQUEST MODELS ====================
 
 class IngestRequest(BaseModel):
     object_type: str
     data: Dict[str, Any]
     actor: Optional[str] = "system"
 
-class IngestResponse(BaseModel):
-    success: bool
-    object_id: str
-    reasoned_object: Dict[str, Any]
-
-class ReasonResponse(BaseModel):
-    reasoned_object: Dict[str, Any]
-
-class SimilarResponse(BaseModel):
-    object_id: str
-    relations: List[Dict[str, Any]]
-
-class QueryResponse(BaseModel):
-    objects: List[Dict[str, Any]]
-    count: int
-
-class TypesResponse(BaseModel):
-    types: List[str]
-
 # ==================== ENDPOINTS ====================
 
 @app.get("/")
 def health_check():
     """Health check endpoint"""
-    return {
+    return JSONResponse({
         "service": "Core Semantic Kernel",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "operational",
+        "milestone": "M2: Sovereignty Loop",
         "components": {
             "reasoner": "active",
             "ontology": "loaded",
             "embeddings": "ready",
-            "sage": "active",
-            "storage": "connected"
+            "sage": "enforcing",
+            "storage": "connected",
+            "provenance": "tracking"
         }
-    }
+    })
 
 @app.post("/api/core/ingest")
 def ingest_object(request: IngestRequest):
@@ -102,10 +102,12 @@ def ingest_object(request: IngestRequest):
     Pipeline:
     1. Validate against ontology
     2. Generate embedding
-    3. Run SAGE validation
-    4. Store object + vector + metadata
-    5. Log provenance
-    6. Return ReasonedObject
+    3. Run SAGE evaluation (returns decision: allow/flag/deny)
+    4. Enforce SAGE decision:
+       - allow: store normally
+       - flag: store with is_validated=false
+       - deny: reject, log denial in provenance
+    5. Return governed response
     """
     try:
         reasoned = reasoner.ingest(
@@ -114,93 +116,128 @@ def ingest_object(request: IngestRequest):
             request.actor
         )
         
-        return {
-            "success": True,
+        # Extract clean response
+        response = {
             "object_id": reasoned["symbolic"]["id"],
-            "reasoned_object": reasoned
+            "type": reasoned["object"],
+            "fields": {
+                k: v for k, v in reasoned["symbolic"].items()
+                if k not in ["id", "created_at", "updated_at"]
+            },
+            "sage": {
+                "coherence_score": reasoned["sage"]["coherence_score"],
+                "trust_score": reasoned["sage"]["trust_score"],
+                "is_validated": reasoned["sage"]["validated"],
+                "decision": reasoned["sage"].get("decision", "allow")
+            },
+            "provenance": {
+                "ingested_at": reasoned["symbolic"]["created_at"],
+                "embedded": reasoned["vector"]["has_embedding"],
+                "checked_by_sage": True
+            }
         }
+        
+        # Sanitize and return
+        return JSONResponse(sanitize_for_json(response))
+        
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
-@app.get("/api/core/object/{object_id}", response_model=ReasonResponse)
+@app.get("/api/core/object/{object_id}")
 def get_object(object_id: str):
+    """Get a governed object by ID"""
+    try:
+        reasoned = reasoner.reason(object_id)
+        
+        # Clean response
+        response = {
+            "object_id": reasoned["symbolic"]["id"],
+            "type": reasoned["object"],
+            "fields": {
+                k: v for k, v in reasoned["symbolic"].items()
+                if k not in ["id", "created_at", "updated_at"]
+            },
+            "sage": {
+                "coherence_score": reasoned["sage"]["coherence_score"],
+                "trust_score": reasoned["sage"]["trust_score"],
+                "is_validated": reasoned["sage"]["validated"],
+                "decision": reasoned["sage"].get("decision", "allow")
+            },
+            "vector": {
+                "has_embedding": reasoned["vector"]["has_embedding"],
+                "dimension": reasoned["vector"]["dimension"],
+                "relations_count": len(reasoned["vector"]["relations"])
+            },
+            "provenance": {
+                "created_at": reasoned["symbolic"]["created_at"],
+                "updated_at": reasoned["symbolic"]["updated_at"],
+                "events_count": len(reasoned["provenance"])
+            }
+        }
+        
+        return JSONResponse(sanitize_for_json(response))
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+@app.get("/api/core/provenance/{object_id}")
+def get_provenance(object_id: str):
     """
-    Get a reasoned object by ID
+    Get provenance timeline for an object
     
-    Returns ReasonedObject with:
-    - symbolic (ontology data)
-    - vector (embedding + relations)
-    - provenance (audit trail)
-    - sage (governance metadata)
+    Returns ordered list of events showing:
+    - What was done
+    - When it was done
+    - Who/what did it
+    - SAGE decisions
     """
     try:
         reasoned = reasoner.reason(object_id)
-        return {"reasoned_object": reasoned}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-
-@app.get("/api/core/reason/{object_id}", response_model=ReasonResponse)
-def reason_about(object_id: str):
-    """
-    Perform reasoning on an object
-    
-    Same as /object/{id} but more explicit about reasoning
-    """
-    return get_object(object_id)
-
-@app.get("/api/core/similar/{object_id}", response_model=SimilarResponse)
-def find_similar(object_id: str, top_k: int = 5):
-    """
-    Find semantically similar objects
-    
-    Uses vector embeddings to find related objects
-    """
-    try:
-        relations = reasoner.infer_relations(object_id, top_k)
-        return {
+        
+        # Build timeline from provenance
+        timeline = []
+        for event in reasoned["provenance"]:
+            timeline.append({
+                "event": event["action"],
+                "ts": event["timestamp"],
+                "actor": event["actor"],
+                "details": event.get("metadata", {})
+            })
+        
+        response = {
             "object_id": object_id,
-            "relations": relations
+            "timeline": timeline
         }
+        
+        return JSONResponse(sanitize_for_json(response))
+        
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
-@app.get("/api/core/query", response_model=QueryResponse)
-def query_objects(object_type: Optional[str] = None, limit: int = 100):
-    """
-    Query objects from Core
-    
-    Args:
-        object_type: Filter by type (optional)
-        limit: Maximum results
-    """
-    try:
-        objects = reasoner.query(object_type, limit)
-        return {
-            "objects": objects,
-            "count": len(objects)
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-
-@app.get("/api/core/types", response_model=TypesResponse)
+@app.get("/api/core/types")
 def list_types():
-    """
-    List all available object types from ontology
-    """
+    """List all available object types from ontology"""
     try:
         types = reasoner.ontology.list_types()
-        return {"types": types}
+        return JSONResponse({"types": types})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 # ==================== FINANCIAL DOMAIN ENDPOINTS ====================
-# These are specific to DexaBooks but use the Core reasoning engine
 
 class TransactionCreate(BaseModel):
     amount: float
@@ -213,33 +250,48 @@ class TransactionCreate(BaseModel):
 @app.post("/api/financial/transaction")
 def create_transaction(transaction: TransactionCreate):
     """Create a financial transaction (DexaBooks)"""
-    try:
-        # Convert to Core object
-        reasoned = reasoner.ingest(
-            "Transaction",
-            transaction.dict(),
-            "DexaBooks"
-        )
-        
-        # Ensure it's JSON serializable
-        import json
-        json_str = json.dumps(reasoned)
-        return json.loads(json_str)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+    return ingest_object(IngestRequest(
+        object_type="Transaction",
+        data=transaction.dict(),
+        actor="DexaBooks"
+    ))
 
-@app.get("/api/financial/transactions")
-def list_transactions(limit: int = 100):
-    """List all transactions"""
+@app.get("/api/financial/recent")
+def list_recent_transactions(limit: int = 20):
+    """
+    List recent transactions
+    
+    For Mirror integration - shows recent governed objects
+    """
     try:
         transactions = reasoner.query("Transaction", limit)
-        return {
-            "transactions": transactions,
-            "count": len(transactions)
+        
+        # Convert to clean response format
+        results = []
+        for t in transactions:
+            results.append({
+                "object_id": t["symbolic"]["id"],
+                "type": t["object"],
+                "fields": {k: v for k, v in t["symbolic"].items() if k not in ["id", "created_at", "updated_at"]},
+                "sage": {
+                    "coherence_score": t["sage"]["coherence_score"],
+                    "trust_score": t["sage"]["trust_score"],
+                    "is_validated": t["sage"]["validated"],
+                    "decision": t["sage"].get("decision", "allow")
+                },
+                "created_at": t["symbolic"]["created_at"]
+            })
+        
+        response = {
+            "objects": results,
+            "count": len(results)
         }
+        
+        return JSONResponse(sanitize_for_json(response))
+        
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 @app.get("/api/financial/analytics/summary")
@@ -250,24 +302,29 @@ def financial_summary():
         
         # Calculate summary
         total_income = sum(
-            t["symbolic"]["amount"] 
+            t["data"]["amount"] 
             for t in transactions 
-            if t["symbolic"].get("transaction_type") == "income"
+            if t["data"].get("transaction_type") == "income"
         )
         
         total_expenses = sum(
-            abs(t["symbolic"]["amount"])
+            abs(t["data"]["amount"])
             for t in transactions 
-            if t["symbolic"].get("transaction_type") == "expense"
+            if t["data"].get("transaction_type") == "expense"
         )
         
-        return {
+        response = {
             "total_income": total_income,
             "total_expenses": total_expenses,
             "net": total_income - total_expenses,
             "transaction_count": len(transactions)
         }
+        
+        return JSONResponse(sanitize_for_json(response))
+        
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 

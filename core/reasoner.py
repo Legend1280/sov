@@ -69,7 +69,7 @@ class Reasoner:
         embedding_bytes = serialize_vector(embedding)
         self.storage.save_vector(object_id, embedding_bytes, "all-MiniLM-L6-v2", EMBEDDING_DIM)
         
-        # 5. Run SAGE validation
+        # 5. Run SAGE validation (BEFORE storing)
         provenance_chain = []  # New object, no provenance yet
         sage_metadata = self.sage.validate_object(
             {"id": object_id, "object_type": object_type, "data": normalized_data},
@@ -77,7 +77,25 @@ class Reasoner:
             provenance_chain
         )
         
-        # 6. Store SAGE metadata
+        # 6. Enforce SAGE decision (Milestone 2)
+        decision = sage_metadata["decision"]
+        
+        if decision == "deny":
+            # Do NOT store object, but log the denial
+            self.storage.log_provenance(
+                object_id,
+                "denied",
+                actor,
+                {
+                    "object_type": object_type,
+                    "reason": sage_metadata["rationale"],
+                    "coherence_score": sage_metadata["coherence_score"],
+                    "trust_score": sage_metadata["trust_score"]
+                }
+            )
+            raise ValueError(f"SAGE denied object: {sage_metadata['rationale']}")
+        
+        # 7. Store SAGE metadata (for allow/flag)
         self.storage.save_sage_metadata(
             object_id,
             sage_metadata["coherence_score"],
@@ -85,12 +103,18 @@ class Reasoner:
             sage_metadata["validated"]
         )
         
-        # 7. Log provenance
+        # 8. Log provenance with decision
+        action = "ingested" if decision == "allow" else "flagged"
         self.storage.log_provenance(
             object_id,
-            "ingested",
+            action,
             actor,
-            {"object_type": object_type, "validated": sage_metadata["validated"]}
+            {
+                "object_type": object_type,
+                "validated": sage_metadata["validated"],
+                "decision": decision,
+                "rationale": sage_metadata["rationale"]
+            }
         )
         
         # 8. Find semantic relations
