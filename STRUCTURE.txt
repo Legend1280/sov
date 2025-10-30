@@ -1,0 +1,54 @@
+.
+├── ORGANIZATION_SUMMARY.md
+├── README.md
+├── STRUCTURE.txt
+├── apps
+│   └── dexabooks
+│       ├── README.md
+│       ├── backend
+│       │   ├── api_finance.py
+│       │   └── requirements.txt
+│       ├── frontend
+│       └── test_data
+├── core
+│   ├── README.md
+│   ├── api.py
+│   ├── api_refactored.py
+│   ├── config.json
+│   ├── database
+│   ├── embedding_service.py
+│   ├── extractor.py
+│   ├── ontology
+│   ├── ontology_validator.py
+│   ├── provenance.py
+│   ├── requirements.txt
+│   └── vector_utils.py
+├── docs
+│   ├── architecture
+│   │   ├── LoomLite_Ontology_Standard_v2.2.md
+│   │   ├── Mirror Framework v1.0 - Developer Documentation.md
+│   │   └── The Core Constitution v1.0.md
+│   ├── guides
+│   │   └── pasted_file_C5FPjg_LoomLite_v6.0_Developer_Handoff.md
+│   ├── implementation
+│   │   ├── DexaBooks Backend v1.0 - Implementation Complete.md
+│   │   ├── DexaBooks v1.0 - Final Test Report.md
+│   │   ├── DexaBooks v1.0: Implementation Plan (Post-Refactor).md
+│   │   ├── DexaBooks v1.0: MVP Project Outline.md
+│   │   ├── DexaBooks v1.0: Technical Specification.md
+│   │   ├── Phase 2 Complete: LoomLite Refactor - Final Report.md
+│   │   └── Refactor Roadmap: From Monolith to Modular Loom Core.md
+│   └── todo.md
+├── mirror
+│   ├── README.md
+│   └── src
+│       ├── components
+│       ├── core
+│       └── themes
+├── package.json
+├── pnpm-workspace.yaml
+└── scripts
+    ├── start-core.sh
+    └── start-dexabooks.sh
+
+18 directories, 33 files
