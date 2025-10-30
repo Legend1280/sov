@@ -7,12 +7,15 @@ Exposes provenance for audit.
 """
 
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+import tempfile
+import os
 
 from reasoner import get_reasoner
+from ingest import create_importer
 
 # Initialize FastAPI
 app = FastAPI(
@@ -32,6 +35,9 @@ app.add_middleware(
 
 # Initialize reasoner
 reasoner = get_reasoner("./core.db", "./ontology")
+
+# Initialize importer
+importer = create_importer(reasoner, reasoner.storage)
 
 # ==================== SANITIZATION ====================
 
@@ -326,6 +332,64 @@ def financial_summary():
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/financial/import")
+async def import_financial_file(file: UploadFile = File(...), actor: str = "User"):
+    """
+    Import structured financial data (Excel/CSV)
+    
+    Milestone 3: Structured Data Ingestion
+    
+    Args:
+        file: Uploaded Excel or CSV file
+        actor: Who initiated the import
+        
+    Returns:
+        Ingestion summary with governance statistics
+    """
+    try:
+        # Validate file type
+        if not (file.filename.endswith('.xlsx') or 
+                file.filename.endswith('.xls') or 
+                file.filename.endswith('.csv')):
+            raise HTTPException(
+                status_code=400, 
+                detail="Only Excel (.xlsx, .xls) and CSV files are supported"
+            )
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            # Ingest file
+            result = importer.ingest_file(
+                file_path=tmp_path,
+                source_name=file.filename,
+                actor=actor
+            )
+            
+            # Clean up temp file
+            os.unlink(tmp_path)
+            
+            # Return sanitized result
+            return JSONResponse(sanitize_for_json(result))
+            
+        except Exception as e:
+            # Clean up temp file on error
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise e
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
 
 if __name__ == "__main__":
