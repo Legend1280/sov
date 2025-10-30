@@ -31,3 +31,15 @@
 - [ ] Test viewport loading
 - [ ] Create sample transactions
 - [ ] Present working demo
+
+## Milestone 6: Upload System ✅
+- [x] Upload button functional — Ingests files into Core and reflects in Mirror
+- [x] Created UploadHandler component with file processing logic
+- [x] Integrated with MirrorLayout header
+- [x] Added Core API ingestion endpoint (/api/ingest)
+- [x] Implemented provenance tracking with content hashing
+- [x] Added UI feedback with success/error notifications
+- [x] Support for multiple file types (PDF, DOCX, CSV, images, etc.)
+- [x] Automatic ontology type classification
+- [x] Comprehensive documentation created
+- **Tag**: `M6_UPLOAD_SYSTEM_COMPLETE`

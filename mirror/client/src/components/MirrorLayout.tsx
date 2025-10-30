@@ -1,7 +1,8 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import SurfaceViewer from './SurfaceViewer';
 import ResizeHandle from './ResizeHandle';
+import UploadHandler from './UploadHandler';
 import { useLayoutStore } from '../core/LayoutManager';
 import { useThemeStore } from '../themes/ThemeManager';
 import { moduleRegistry } from '../core/ModuleRegistry';
@@ -14,6 +15,9 @@ interface MirrorLayoutProps {
 }
 
 export default function MirrorLayout({ viewport1, viewport2, selectedObject, onObjectSelect }: MirrorLayoutProps) {
+  // State for uploaded objects
+  const [uploadedObject, setUploadedObject] = useState<any>(null);
+
   // Use centralized layout state from LayoutManager
   const {
     navigatorVisible,
@@ -132,9 +136,25 @@ export default function MirrorLayout({ viewport1, viewport2, selectedObject, onO
           >
             Future
           </Button>
-          <Button variant="outline" size="sm">
-            Upload
-          </Button>
+          <UploadHandler 
+            onComplete={(response) => {
+              console.log('Upload complete:', response);
+              // Store uploaded object for display in Viewport 2
+              setUploadedObject({
+                id: response.object_id,
+                type: response.ontology_type,
+                timestamp: new Date().toISOString(),
+                provenance_id: response.provenance_id,
+              });
+              // Optionally trigger SurfaceViewer to open
+              if (!surfaceViewerVisible) {
+                toggleSurfaceViewer();
+              }
+            }}
+            onError={(error) => {
+              console.error('Upload error:', error);
+            }}
+          />
         </div>
       </header>
 
