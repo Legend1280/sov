@@ -1,0 +1,30 @@
+{
+  "name": "sov-monorepo",
+  "version": "1.0.0",
+  "description": "Sovereignty Stack - Ontology-First Semantic Operating System",
+  "private": true,
+  "workspaces": [
+    "mirror",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:core": "cd core && uvicorn api:app --reload --port 8001",
+    "dev:dexabooks": "cd apps/dexabooks/backend && uvicorn api_finance:app --reload --port 8002",
+    "dev:mirror": "cd mirror && pnpm dev",
+    "dev": "concurrently \"pnpm dev:core\" \"pnpm dev:dexabooks\" \"pnpm dev:mirror\"",
+    "build": "cd mirror && pnpm build"
+  },
+  "keywords": [
+    "ontology",
+    "semantic-web",
+    "vector-embeddings",
+    "provenance",
+    "mirror-framework"
+  ],
+  "author": "Brady Simmons",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Legend1280/sov.git"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "dexabooks",
+  "name": "DexaBooks Financial Suite",
+  "description": "Ontology-first financial forecasting and reasoning module",
+  "viewports": [
+    {
+      "id": "cash-flow-timeline",
+      "type": "timeline",
+      "title": "Cash Flow Timeline",
+      "dataSource": "http://localhost:8002/api/transactions"
+    },
+    {
+      "id": "expense-breakdown",
+      "type": "bar",
+      "title": "Expense Breakdown",
+      "dataSource": "http://localhost:8002/api/analytics/summary"
+    }
+  ],
+  "surfaceTabs": [
+    "Ontology",
+    "Document",
+    "Provenance"
+  ],
+  "navigatorSources": [
+    {
+      "id": "dashboard",
+      "label": "Dashboard",
+      "badge": 10
+    },
+    {
+      "id": "transactions",
+      "label": "Transactions",
+      "badge": 11
+    },
+    {
+      "id": "analytics",
+      "label": "Analytics",
+      "badge": 12
+    },
+    {
+      "id": "forecasts",
+      "label": "Forecasts",
+      "badge": 13
+    }
+  ]
+}
