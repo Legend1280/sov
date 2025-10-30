@@ -20,6 +20,7 @@ from ontology import get_ontology
 from embeddings import embed_object, semantic_neighbors, serialize_vector, deserialize_vector, EMBEDDING_DIM
 from sage import get_sage
 from utils import sanitize_for_json
+from kronos import TemporalIndexer
 
 class Reasoner:
     """Main reasoning engine for Core kernel"""
@@ -28,6 +29,7 @@ class Reasoner:
         self.storage = get_storage(db_path)
         self.ontology = get_ontology(ontology_dir)
         self.sage = get_sage()
+        self.kronos = TemporalIndexer(self.storage)
     
     def ingest(self, object_type: str, data: Dict[str, Any], actor: str = "system") -> Dict[str, Any]:
         """
@@ -114,6 +116,20 @@ class Reasoner:
                 "validated": sage_metadata["validated"],
                 "decision": decision,
                 "rationale": sage_metadata["rationale"]
+            }
+        )
+        
+        # 9. Record Kronos baseline event (Milestone 5: Temporal Intelligence)
+        self.kronos.record_event(
+            object_id=object_id,
+            event_type="baseline",
+            vector=embedding,
+            coherence_score=sage_metadata["coherence_score"],
+            trust_score=sage_metadata["trust_score"],
+            metadata={
+                "actor": actor,
+                "decision": decision,
+                "object_type": object_type
             }
         )
         

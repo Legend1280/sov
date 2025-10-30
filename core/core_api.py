@@ -392,6 +392,86 @@ async def import_financial_file(file: UploadFile = File(...), actor: str = "User
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
 
+# ==================== KRONOS ENDPOINTS ====================
+
+from kronos import TemporalIndexer
+
+# Initialize Kronos indexer
+kronos_indexer = TemporalIndexer(reasoner.storage)
+
+@app.get("/api/kronos/events")
+def get_kronos_events(object_id: Optional[str] = None, limit: int = 100):
+    """
+    Get temporal events for an object or all recent events.
+    
+    Query params:
+        object_id: Filter by specific object (optional)
+        limit: Max events to return (default 100)
+    """
+    try:
+        if object_id:
+            # Get timeline for specific object
+            timeline = kronos_indexer.get_timeline(object_id, limit)
+            return JSONResponse({
+                "object_id": object_id,
+                "events": timeline,
+                "count": len(timeline)
+            })
+        else:
+            # Get all recent events (implement if needed)
+            return JSONResponse({
+                "message": "Specify object_id to get temporal events",
+                "example": "/api/kronos/events?object_id=obj_123"
+            })
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Kronos query failed: {str(e)}")
+
+
+@app.get("/api/kronos/drift/{object_id}")
+def get_drift_analysis(object_id: str):
+    """
+    Get coherence drift analysis for an object.
+    
+    Compares baseline to latest state.
+    """
+    try:
+        baseline = kronos_indexer.get_baseline(object_id)
+        latest = kronos_indexer.get_latest(object_id)
+        
+        if not baseline:
+            raise HTTPException(status_code=404, detail="No baseline found for object")
+        
+        if not latest:
+            raise HTTPException(status_code=404, detail="No events found for object")
+        
+        # Calculate drift if vectors available
+        drift_data = {
+            "object_id": object_id,
+            "baseline": {
+                "timestamp": baseline["timestamp"],
+                "coherence": baseline["coherence_score"],
+                "trust": baseline["trust_score"]
+            },
+            "latest": {
+                "timestamp": latest["timestamp"],
+                "coherence": latest["coherence_score"],
+                "trust": latest["trust_score"]
+            },
+            "delta": {
+                "coherence": latest["coherence_score"] - baseline["coherence_score"],
+                "trust": latest["trust_score"] - baseline["trust_score"]
+            }
+        }
+        
+        return JSONResponse(drift_data)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Drift analysis failed: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
