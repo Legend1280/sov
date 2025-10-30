@@ -1,0 +1,194 @@
+"""
+SAGE - Semantic Governance Engine
+Validates coherence, trust, and logical consistency
+
+SAGE provides:
+- Coherence scoring (semantic consistency)
+- Trust scoring (provenance-based reputation)
+- Action validation (permissions and rules)
+- Logical consistency checks
+"""
+
+import numpy as np
+from typing import Dict, Any, Optional, Tuple
+from datetime import datetime
+
+class SAGE:
+    """Semantic Governance Engine"""
+    
+    def __init__(self):
+        # Governance thresholds
+        self.COHERENCE_THRESHOLD = 0.75
+        self.TRUST_THRESHOLD = 0.70
+        self.SIMILARITY_THRESHOLD = 0.80
+    
+    def coherence_check(self, obj: Dict[str, Any], vector: Optional[np.ndarray] = None) -> float:
+        """
+        Check semantic coherence of an object
+        
+        Coherence = how well the symbolic and vector representations align
+        
+        Returns: coherence score (0.0 - 1.0)
+        """
+        # Base coherence from object completeness
+        required_fields = ["object_type", "data"]
+        completeness = sum(1 for field in required_fields if field in obj) / len(required_fields)
+        
+        # If vector is provided, check its quality
+        vector_quality = 1.0
+        if vector is not None:
+            # Check vector magnitude (should be normalized)
+            magnitude = np.linalg.norm(vector)
+            vector_quality = min(1.0, magnitude / 1.5)  # Penalize very small vectors
+        
+        # Combine scores
+        coherence = (completeness * 0.6) + (vector_quality * 0.4)
+        
+        return round(coherence, 3)
+    
+    def trust_score(self, object_id: str, provenance_chain: list) -> float:
+        """
+        Calculate trust score based on provenance
+        
+        Trust = reputation based on:
+        - Number of validations
+        - Source credibility
+        - Age of object
+        - Consistency over time
+        
+        Returns: trust score (0.0 - 1.0)
+        """
+        if not provenance_chain:
+            return 0.5  # Neutral trust for new objects
+        
+        # Count validations
+        validations = sum(1 for event in provenance_chain if event.get("action") == "validated")
+        validation_score = min(1.0, validations / 3.0)  # Max out at 3 validations
+        
+        # Check source credibility
+        sources = [event.get("actor", "unknown") for event in provenance_chain]
+        trusted_sources = ["SAGE", "Core", "Mirror.UI"]
+        credibility = sum(1 for source in sources if source in trusted_sources) / max(len(sources), 1)
+        
+        # Age factor (older = more trusted, up to a point)
+        if provenance_chain:
+            first_event = provenance_chain[-1]  # Oldest event
+            try:
+                created_at = datetime.fromisoformat(first_event.get("timestamp", ""))
+                age_days = (datetime.utcnow() - created_at).days
+                age_score = min(1.0, age_days / 30.0)  # Max out at 30 days
+            except:
+                age_score = 0.0
+        else:
+            age_score = 0.0
+        
+        # Combine scores
+        trust = (validation_score * 0.4) + (credibility * 0.4) + (age_score * 0.2)
+        
+        return round(trust, 3)
+    
+    def validate_action(self, user: str, action: str, obj: Dict[str, Any]) -> Tuple[bool, str]:
+        """
+        Validate if an action is allowed
+        
+        Returns: (allowed, reason)
+        """
+        # For now, simple rules
+        # In future, this could be expanded with role-based access control
+        
+        allowed_actions = ["read", "create", "update", "delete", "validate"]
+        
+        if action not in allowed_actions:
+            return False, f"Unknown action: {action}"
+        
+        # Anyone can read
+        if action == "read":
+            return True, "Read access granted"
+        
+        # Only trusted actors can validate
+        if action == "validate":
+            trusted_actors = ["SAGE", "Core", "admin"]
+            if user not in trusted_actors:
+                return False, "Only trusted actors can validate"
+        
+        # Default: allow
+        return True, f"Action '{action}' allowed for user '{user}'"
+    
+    def validate_relation(self, source_type: str, target_type: str, similarity: float) -> Tuple[bool, str]:
+        """
+        Validate if a semantic relation makes sense
+        
+        Returns: (valid, reason)
+        """
+        # Check similarity threshold
+        if similarity < self.SIMILARITY_THRESHOLD:
+            return False, f"Similarity too low: {similarity:.3f} < {self.SIMILARITY_THRESHOLD}"
+        
+        # Type compatibility rules
+        compatible_pairs = [
+            ("Transaction", "Transaction"),
+            ("Transaction", "Account"),
+            ("Account", "Account"),
+            ("Forecast", "Transaction"),
+            ("Document", "Document"),
+            ("Concept", "Concept"),
+        ]
+        
+        pair = (source_type, target_type)
+        reverse_pair = (target_type, source_type)
+        
+        if pair not in compatible_pairs and reverse_pair not in compatible_pairs:
+            return False, f"Incompatible types: {source_type} <-> {target_type}"
+        
+        return True, "Relation validated"
+    
+    def coherence_score_from_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
+        """
+        Calculate coherence score from vector similarity
+        
+        Uses cosine similarity
+        """
+        # Normalize vectors
+        vec1_norm = vec1 / (np.linalg.norm(vec1) + 1e-10)
+        vec2_norm = vec2 / (np.linalg.norm(vec2) + 1e-10)
+        
+        # Cosine similarity
+        similarity = np.dot(vec1_norm, vec2_norm)
+        
+        return round(float(similarity), 3)
+    
+    def validate_object(self, obj: Dict[str, Any], vector: Optional[np.ndarray] = None, provenance: Optional[list] = None) -> Dict[str, Any]:
+        """
+        Full SAGE validation of an object
+        
+        Returns: SAGE metadata
+        """
+        # Calculate coherence
+        coherence = self.coherence_check(obj, vector)
+        
+        # Calculate trust
+        trust = self.trust_score(obj.get("id", "unknown"), provenance or [])
+        
+        # Determine if validated
+        validated = coherence >= self.COHERENCE_THRESHOLD and trust >= self.TRUST_THRESHOLD
+        
+        return {
+            "coherence_score": coherence,
+            "trust_score": trust,
+            "validated": validated,
+            "thresholds": {
+                "coherence": self.COHERENCE_THRESHOLD,
+                "trust": self.TRUST_THRESHOLD
+            }
+        }
+
+
+# Singleton instance
+_sage = None
+
+def get_sage() -> SAGE:
+    """Get the global SAGE instance"""
+    global _sage
+    if _sage is None:
+        _sage = SAGE()
+    return _sage

@@ -1,0 +1,57 @@
+objects:
+  Entity:
+    description: "Base entity type"
+    properties:
+      id:
+        type: String
+        required: false
+      created_at:
+        type: DateTime
+        required: false
+      updated_at:
+        type: DateTime
+        required: false
+
+  Document:
+    inherits: Entity
+    description: "A document or text artifact"
+    properties:
+      title:
+        type: String
+        required: true
+      content:
+        type: String
+        required: true
+      source_uri:
+        type: String
+        required: false
+      author:
+        type: String
+        required: false
+
+  Concept:
+    inherits: Entity
+    description: "An abstract concept or idea"
+    properties:
+      name:
+        type: String
+        required: true
+      definition:
+        type: String
+        required: false
+      category:
+        type: String
+        required: false
+
+relation_types:
+  semantic_similarity:
+    description: "Objects are semantically similar"
+    allowed_pairs:
+      - [Document, Document]
+      - [Concept, Concept]
+  
+  references:
+    description: "One object references another"
+    allowed_pairs:
+      - [Document, Concept]
+      - [Document, Document]

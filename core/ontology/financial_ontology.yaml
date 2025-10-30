@@ -1,0 +1,76 @@
+objects:
+  Transaction:
+    inherits: Entity
+    description: "A financial transaction"
+    properties:
+      amount:
+        type: Float
+        required: true
+      date:
+        type: Date
+        required: true
+      description:
+        type: String
+        required: true
+      transaction_type:
+        type: String
+        required: true
+        enum: ["income", "expense"]
+      category:
+        type: String
+        required: false
+      vendor:
+        type: String
+        required: false
+      account:
+        type: String
+        required: false
+
+  Account:
+    inherits: Entity
+    description: "A financial account"
+    properties:
+      name:
+        type: String
+        required: true
+      account_type:
+        type: String
+        required: true
+        enum: ["checking", "savings", "credit", "investment"]
+      balance:
+        type: Float
+        required: false
+      currency:
+        type: String
+        required: false
+
+  Forecast:
+    inherits: Entity
+    description: "A financial forecast"
+    properties:
+      period:
+        type: String
+        required: true
+      projected_income:
+        type: Float
+        required: true
+      projected_expenses:
+        type: Float
+        required: true
+      confidence:
+        type: Float
+        required: false
+      methodology:
+        type: String
+        required: false
+
+relation_types:
+  belongs_to:
+    description: "Transaction belongs to Account"
+    allowed_pairs:
+      - [Transaction, Account]
+  
+  forecasts:
+    description: "Forecast based on Transactions"
+    allowed_pairs:
+      - [Forecast, Transaction]
