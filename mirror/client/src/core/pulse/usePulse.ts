@@ -14,13 +14,15 @@ export interface UsePulseReturn {
   emitPulse: (pulse: Partial<PulseObject>) => void;
   sendPulse: (topic: string, payload: any, options?: Partial<PulseObject>) => void;
   onPulse: (topic: string, handler: (pulse: PulseObject) => void) => void;
+  pulses: PulseObject[];
+  getAllPulses: () => PulseObject[];
 }
 
 /**
  * Hook for Pulse communication
  * @param channel - The communication channel (e.g., 'mirror↔core')
  */
-export function usePulse(channel: string): UsePulseReturn {
+export function usePulse(channel?: string): UsePulseReturn {
   const unsubscribersRef = useRef<(() => void)[]>([]);
 
   // Clean up listeners on unmount
@@ -34,16 +36,16 @@ export function usePulse(channel: string): UsePulseReturn {
   const emitPulse = useCallback((pulse: Partial<PulseObject>) => {
     PulseBridge.emit({
       ...pulse,
-      source: pulse.source || channel.split('↔')[0],
-      target: pulse.target || channel.split('↔')[1],
+      source: pulse.source || (channel ? channel.split('↔')[0] : 'unknown'),
+      target: pulse.target || (channel ? channel.split('↔')[1] : 'unknown'),
     });
   }, [channel]);
 
   const sendPulse = useCallback((topic: string, payload: any, options?: Partial<PulseObject>) => {
     PulseBridge.send(topic, payload, {
       ...options,
-      source: options?.source || channel.split('↔')[0],
-      target: options?.target || channel.split('↔')[1],
+      source: options?.source || (channel ? channel.split('↔')[0] : 'unknown'),
+      target: options?.target || (channel ? channel.split('↔')[1] : 'unknown'),
     });
   }, [channel]);
 
@@ -52,9 +54,15 @@ export function usePulse(channel: string): UsePulseReturn {
     unsubscribersRef.current.push(unsubscribe);
   }, []);
 
+  const getAllPulses = useCallback(() => {
+    return PulseBridge.getLog();
+  }, []);
+
   return {
     emitPulse,
     sendPulse,
     onPulse,
+    pulses: PulseBridge.getLog(), // Direct access
+    getAllPulses,
   };
 }

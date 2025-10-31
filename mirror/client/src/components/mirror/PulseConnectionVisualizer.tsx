@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { usePulse } from '../../core/pulse/usePulse';
+import React, { useState, useEffect } from 'react';
+import { usePulse } from '@/core/pulse/usePulse';
+import { PulseBridge } from '@/core/pulse/PulseBridge';
 
 interface PulseParticle {
   id: string;
@@ -10,38 +11,69 @@ interface PulseParticle {
 }
 
 export const PulseConnectionVisualizer: React.FC = () => {
-  const { pulses } = usePulse();
+  const { getAllPulses } = usePulse();
+  const [allPulses, setAllPulses] = useState<any[]>([]);
   const [particles, setParticles] = useState<PulseParticle[]>([]);
   const [stats, setStats] = useState({ sent: 0, received: 0, avgCoherence: 0 });
-  const [threadPulse, setThreadPulse] = useState(0);
+  const [pingPongPosition, setPingPongPosition] = useState(0);
+  const [pingPongDirection, setPingPongDirection] = useState<'forward' | 'backward'>('forward');
 
-  // Animate the connecting thread pulse
+  // Animate the ping-pong particle
   useEffect(() => {
     const interval = setInterval(() => {
-      setThreadPulse(prev => (prev + 1) % 100);
-    }, 50);
+      setPingPongPosition(prev => {
+        if (pingPongDirection === 'forward') {
+          if (prev >= 100) {
+            setPingPongDirection('backward');
+            return 100;
+          }
+          return prev + 0.5;
+        } else {
+          if (prev <= 0) {
+            setPingPongDirection('forward');
+            return 0;
+          }
+          return prev - 0.5;
+        }
+      });
+    }, 30);
     return () => clearInterval(interval);
-  }, []);
+  }, [pingPongDirection]);
+
+  // Subscribe to pulse updates using event subscription instead of polling
+  useEffect(() => {
+    const updatePulses = () => {
+      setAllPulses(getAllPulses());
+    };
+    
+    // Initial load
+    updatePulses();
+    
+    // Subscribe to all pulse events for real-time updates
+    const unsubscribe = PulseBridge.on('*', updatePulses);
+    
+    return () => unsubscribe();
+  }, [getAllPulses]);
 
   useEffect(() => {
     // Safety check - pulses might be undefined initially
-    if (!pulses || !Array.isArray(pulses)) return;
+    if (!allPulses || !Array.isArray(allPulses)) return;
 
     // Calculate stats from pulses
-    const sent = pulses.filter(p => p.source === 'mirror').length;
-    const received = pulses.filter(p => p.source === 'core').length;
-    const coherences = pulses
+    const sent = allPulses.filter(p => p.source === 'mirror').length;
+    const received = allPulses.filter(p => p.source === 'core').length;
+    const coherences = allPulses
       .filter(p => p.source === 'core' && p.coherence !== undefined)
       .map(p => p.coherence!);
     const avgCoherence = coherences.length > 0
-      ? coherences.reduce((a, b) => a + b, 0) / coherences.length
+      ? (coherences.reduce((a, b) => a + b, 0) / coherences.length) * 100
       : 0;
 
     setStats({ sent, received, avgCoherence });
 
     // Create particle for the latest pulse
-    if (pulses.length > 0) {
-      const latest = pulses[pulses.length - 1];
+    if (allPulses.length > 0) {
+      const latest = allPulses[allPulses.length - 1];
       const isToCore = latest.source === 'mirror';
       
       const newParticle: PulseParticle = {
@@ -65,11 +97,10 @@ export const PulseConnectionVisualizer: React.FC = () => {
           clearInterval(animationInterval);
           setTimeout(() => {
             setParticles(prev => prev.filter(p => p.id !== newParticle.id));
-          }, 500);
-        }
+          }, 500);        };
       }, 20);
     }
-  }, [pulses]);
+  }, [allPulses]);
 
   const getIntentColor = (intent: string) => {
     switch (intent) {
@@ -86,6 +117,9 @@ export const PulseConnectionVisualizer: React.FC = () => {
     if (coherence >= 70) return '#f59e0b'; // yellow
     return '#ef4444'; // red
   };
+
+  // Calculate ping-pong particle position
+  const pingPongX = 200 + (400 * pingPongPosition / 100);
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white p-6">
@@ -114,14 +148,12 @@ export const PulseConnectionVisualizer: React.FC = () => {
               <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
             </radialGradient>
 
-            {/* Pulsing thread gradient */}
-            <linearGradient id="threadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#374151" stopOpacity="0.3" />
-              <stop offset={`${threadPulse}%`} stopColor="#60a5fa" stopOpacity="0.8">
-                <animate attributeName="stop-opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite" />
-              </stop>
-              <stop offset="100%" stopColor="#374151" stopOpacity="0.3" />
-            </linearGradient>
+            {/* Ping-pong particle glow */}
+            <radialGradient id="pingPongGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#60a5fa" stopOpacity="1" />
+              <stop offset="50%" stopColor="#60a5fa" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#60a5fa" stopOpacity="0" />
+            </radialGradient>
 
             {/* Glow filter */}
             <filter id="glow">
@@ -131,17 +163,26 @@ export const PulseConnectionVisualizer: React.FC = () => {
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
+
+            {/* Strong glow filter for ping-pong */}
+            <filter id="strongGlow">
+              <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
           </defs>
 
-          {/* Connecting Thread with pulse */}
+          {/* Connecting Thread */}
           <line
-            x1="150"
+            x1="200"
             y1="200"
-            x2="650"
+            x2="600"
             y2="200"
-            stroke="url(#threadGradient)"
-            strokeWidth="3"
-            filter="url(#glow)"
+            stroke="#374151"
+            strokeWidth="2"
+            opacity="0.5"
           />
 
           {/* Mirror Wisp */}
@@ -190,7 +231,30 @@ export const PulseConnectionVisualizer: React.FC = () => {
             </text>
           </g>
 
-          {/* Animated Particles */}
+          {/* Ping-Pong Particle (always visible) */}
+          <g>
+            {/* Outer glow */}
+            <circle
+              cx={pingPongX}
+              cy="200"
+              r="20"
+              fill="url(#pingPongGlow)"
+              opacity="0.4"
+              filter="url(#strongGlow)"
+            />
+            {/* Inner particle */}
+            <circle
+              cx={pingPongX}
+              cy="200"
+              r="6"
+              fill="#60a5fa"
+              filter="url(#strongGlow)"
+            >
+              <animate attributeName="r" values="6;8;6" dur="1s" repeatCount="indefinite" />
+            </circle>
+          </g>
+
+          {/* Animated Pulse Particles */}
           {particles.map(particle => {
             const startX = particle.direction === 'toCore' ? 200 : 600;
             const endX = particle.direction === 'toCore' ? 600 : 200;

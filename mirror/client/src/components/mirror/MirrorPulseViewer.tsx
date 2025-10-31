@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePulse } from '@/core/pulse/usePulse';
-import { PulseObject } from '@/core/pulse/PulseBridge';
+import { PulseObject, PulseBridge } from '@/core/pulse/PulseBridge';
 import { Button } from '@/components/ui/button';
 
 export function MirrorPulseViewer() {
@@ -99,7 +99,10 @@ export function MirrorPulseViewer() {
             Send Create
           </Button>
           <Button 
-            onClick={() => setLog([])} 
+            onClick={() => {
+              PulseBridge.clearLog();
+              setLog([]);
+            }} 
             size="sm" 
             variant="ghost"
             className="ml-auto"

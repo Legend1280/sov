@@ -111,6 +111,18 @@ class PulseBridgeCore {
    */
   clearLog(): void {
     this.pulseLog = [];
+    
+    // Notify all wildcard listeners that the log was cleared
+    const wildcardListeners = this.listeners.get('*') || [];
+    const clearEvent: PulseObject = {
+      id: 'log_cleared',
+      source: 'system',
+      target: '*',
+      mode: 'send',
+      topic: 'system:log_cleared',
+      timestamp: Date.now(),
+    };
+    wildcardListeners.forEach(listener => listener.handler(clearEvent));
   }
 
   /**
