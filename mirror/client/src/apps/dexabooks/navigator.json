@@ -1,0 +1,50 @@
+{
+  "id": "dexabooks_navigator",
+  "name": "DexaBooks Navigator",
+  "app": "dexabooks",
+  "viewports": {
+    "viewport1": [
+      {
+        "type": "Stack",
+        "props": {
+          "direction": "vertical",
+          "gap": 2
+        },
+        "children": [
+          {
+            "type": "NavigatorSection",
+            "props": {
+              "title": "FINANCIAL"
+            },
+            "children": [
+              {
+                "type": "NavigatorItem",
+                "props": {
+                  "id": "dashboard",
+                  "label": "Dashboard",
+                  "icon": "LayoutDashboard"
+                }
+              },
+              {
+                "type": "NavigatorItem",
+                "props": {
+                  "id": "transactions",
+                  "label": "Transactions",
+                  "icon": "Receipt"
+                }
+              },
+              {
+                "type": "NavigatorItem",
+                "props": {
+                  "id": "analytics",
+                  "label": "Analytics",
+                  "icon": "BarChart3"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -4,6 +4,10 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { MirrorProvider } from "./core/MirrorContext";
+import { registerComponents } from "./core/registerComponents";
+import { appRegistry } from "./core/AppRegistry";
+import { useEffect } from "react";
 import Home from "./pages/Home";
 
 function Router() {
@@ -23,16 +27,28 @@ function Router() {
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
+  useEffect(() => {
+    // Register all components on startup
+    registerComponents();
+    
+    // Discover and register apps
+    appRegistry.discoverApps().then(() => {
+      console.log('[Mirror] App discovery complete');
+    });
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
         // switchable
       >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <MirrorProvider apiBaseUrl="http://localhost:8001">
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </MirrorProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

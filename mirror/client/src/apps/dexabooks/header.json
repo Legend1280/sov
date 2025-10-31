@@ -1,0 +1,54 @@
+{
+  "id": "dexabooks_header",
+  "name": "DexaBooks Header",
+  "app": "dexabooks",
+  "viewports": {
+    "viewport1": [
+      {
+        "type": "Stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": 4,
+          "align": "center",
+          "justify": "between"
+        },
+        "children": [
+          {
+            "type": "Stack",
+            "props": {
+              "direction": "horizontal",
+              "gap": 2,
+              "align": "center"
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "DexaBooks",
+                  "className": "text-xl font-semibold"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Stack",
+            "props": {
+              "direction": "horizontal",
+              "gap": 2
+            },
+            "children": [
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Upload",
+                  "variant": "default",
+                  "size": "sm"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "dexabooks",
+  "name": "DexaBooks",
+  "description": "Financial analytics and transaction management",
+  "icon": "BookOpen",
+  "defaultLayout": "dexabooks_app_container",
+  "navigatorSchema": "dexabooks/navigator",
+  "headerSchema": "dexabooks/header",
+  "permissions": ["read:financial", "write:financial"],
+  "metadata": {
+    "version": "1.0.0",
+    "author": "Sovereignty Stack"
+  }
+}
