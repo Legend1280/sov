@@ -129,6 +129,11 @@ export function AppContainer({
 }
 
 /**
+ * Load all schemas using Vite's glob import
+ */
+const schemas = import.meta.glob('../../apps/**/*.json', { eager: true });
+
+/**
  * Load a schema from Core API or local cache
  * 
  * TODO: Implement proper caching and Core API integration
@@ -136,10 +141,15 @@ export function AppContainer({
  */
 async function loadSchema(schemaId: string): Promise<MirrorLayoutSchema> {
   try {
-    // Try to load from local apps directory first
-    const module = await import(`../../apps/${schemaId}.json`);
-    return module.default || module;
-  } catch (error) {
+    // Build the full path
+    const path = `../../apps/${schemaId}.json`;
+    
+    // Try to load from pre-imported schemas
+    const module = schemas[path];
+    if (module) {
+      return (module as any).default || module;
+    }
+    
     // Fallback to Core API
     console.warn(`[AppContainer] Schema "${schemaId}" not found locally, trying Core API...`);
     
@@ -148,6 +158,8 @@ async function loadSchema(schemaId: string): Promise<MirrorLayoutSchema> {
     // return await response.json();
     
     throw new Error(`Schema "${schemaId}" not found`);
+  } catch (error) {
+    throw new Error(`Schema "${schemaId}" not found: ${error}`);
   }
 }
 
