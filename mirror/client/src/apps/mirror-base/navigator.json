@@ -1,0 +1,69 @@
+{
+  "viewports": {
+    "navigator": [
+      {
+        "type": "MirrorNavigator",
+        "props": {
+          "width": 280,
+          "collapsible": true,
+          "defaultCollapsed": false,
+          "sections": [
+            {
+              "id": "themes",
+              "title": "THEMES",
+              "component": "ThemeSwitcher"
+            },
+            {
+              "id": "financial",
+              "title": "FINANCIAL",
+              "items": [
+                {
+                  "id": "dashboard",
+                  "label": "Dashboard",
+                  "icon": "📊"
+                },
+                {
+                  "id": "transactions",
+                  "label": "Transactions",
+                  "icon": "💳",
+                  "badge": "12"
+                },
+                {
+                  "id": "analytics",
+                  "label": "Analytics",
+                  "icon": "📈"
+                },
+                {
+                  "id": "reports",
+                  "label": "Reports",
+                  "icon": "📄"
+                }
+              ]
+            },
+            {
+              "id": "governance",
+              "title": "GOVERNANCE",
+              "items": [
+                {
+                  "id": "policies",
+                  "label": "Policies",
+                  "icon": "📋"
+                },
+                {
+                  "id": "compliance",
+                  "label": "Compliance",
+                  "icon": "✓"
+                },
+                {
+                  "id": "audit",
+                  "label": "Audit Trail",
+                  "icon": "🔍"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

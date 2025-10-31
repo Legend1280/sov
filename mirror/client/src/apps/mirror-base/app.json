@@ -1,0 +1,42 @@
+{
+  "id": "mirror-base",
+  "name": "Mirror",
+  "description": "Core Mirror interface framework with navigator, viewports, and surface viewer",
+  "version": "2.0.0",
+  "author": "Brady Simmons",
+  "copyright": "© 2025 Sovereignty Foundation. All rights reserved.",
+  "header": "mirror-base/header",
+  "navigator": "mirror-base/navigator",
+  "surfaceViewer": "mirror-base/surface-viewer",
+  "viewports": [
+    {
+      "id": "viewport1",
+      "label": "Viewport 1",
+      "schema": "mirror-base/viewport1",
+      "defaultHeight": 50,
+      "focusable": true,
+      "resizable": true
+    },
+    {
+      "id": "viewport2",
+      "label": "Viewport 2",
+      "schema": "mirror-base/viewport2",
+      "defaultHeight": 50,
+      "focusable": true,
+      "resizable": true
+    }
+  ],
+  "metadata": {
+    "category": "framework",
+    "tags": ["core", "mirror", "interface"],
+    "features": [
+      "Collapsible navigator",
+      "Dual viewports with focus mode",
+      "Surface viewer for object inspection",
+      "Theme switching",
+      "Temporal navigation",
+      "View mode controls",
+      "File upload"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "viewports": {
+    "header": [
+      {
+        "type": "MirrorHeader",
+        "props": {
+          "title": "Mirror",
+          "showViewModes": true,
+          "showTemporalControls": true,
+          "showUpload": true
+        }
+      }
+    ]
+  }
+}

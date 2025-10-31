@@ -1,0 +1,28 @@
+{
+  "viewports": {
+    "surfaceViewer": [
+      {
+        "type": "MirrorSurfaceViewer",
+        "props": {
+          "width": 400,
+          "collapsible": true,
+          "defaultCollapsed": false,
+          "tabs": [
+            {
+              "id": "details",
+              "label": "Details"
+            },
+            {
+              "id": "document",
+              "label": "Document"
+            },
+            {
+              "id": "provenance",
+              "label": "Provenance"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

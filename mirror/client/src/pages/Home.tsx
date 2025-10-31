@@ -27,13 +27,13 @@ export default function Home() {
         // Wait for app discovery to complete
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Try to load DexaBooks app
-        let app = appRegistry.get('dexabooks');
+        // Try to load Mirror base app
+        let app = appRegistry.get('mirror-base');
         
         if (!app) {
           // If not found, try to load it
           try {
-            app = await appRegistry.load('dexabooks');
+            app = await appRegistry.load('mirror-base');
           } catch (loadError) {
             console.warn('[Home] Could not load DexaBooks app:', loadError);
           }
@@ -46,15 +46,16 @@ export default function Home() {
         // Set as active app
         await appRegistry.setActive(app.id);
 
-        // Create AppContainer layout
+        // Create MirrorContainer layout
         const layout: LayoutNode = {
-          type: 'AppContainer',
+          type: 'MirrorContainer',
           props: {
             appId: app.id,
-            navigatorSchema: app.navigatorSchema,
-            headerSchema: app.headerSchema,
-            viewports: [
-              { id: 'viewport1', schema: `${app.id}/main` }
+            headerSchema: app.header,
+            navigatorSchema: app.navigator,
+            surfaceViewerSchema: app.surfaceViewer,
+            viewports: app.viewports || [
+              { id: 'viewport1', label: 'Viewport 1', schema: `${app.id}/main`, defaultHeight: 100 }
             ]
           }
         };

@@ -1,0 +1,115 @@
+{
+  "viewports": {
+    "viewport1": [
+      {
+        "type": "Stack",
+        "props": {
+          "spacing": "lg",
+          "className": "p-8"
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Mirror Framework",
+              "variant": "h1",
+              "className": "text-3xl font-bold"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Welcome to the Mirror modular interface framework. This is the base Mirror interface with all core components extracted and rebuilt as modular, schema-driven elements.",
+              "variant": "p",
+              "className": "text-muted-foreground"
+            }
+          },
+          {
+            "type": "Grid",
+            "props": {
+              "columns": 3,
+              "gap": "md"
+            },
+            "children": [
+              {
+                "type": "Stack",
+                "props": {
+                  "spacing": "sm",
+                  "className": "p-6 bg-card rounded-lg border border-border"
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "📊 Analytics",
+                      "variant": "h3",
+                      "className": "text-lg font-semibold"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "View financial analytics and insights",
+                      "variant": "p",
+                      "className": "text-sm text-muted-foreground"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Stack",
+                "props": {
+                  "spacing": "sm",
+                  "className": "p-6 bg-card rounded-lg border border-border"
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "💳 Transactions",
+                      "variant": "h3",
+                      "className": "text-lg font-semibold"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "Manage and review transactions",
+                      "variant": "p",
+                      "className": "text-sm text-muted-foreground"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Stack",
+                "props": {
+                  "spacing": "sm",
+                  "className": "p-6 bg-card rounded-lg border border-border"
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "📋 Governance",
+                      "variant": "h3",
+                      "className": "text-lg font-semibold"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "Review policies and compliance",
+                      "variant": "p",
+                      "className": "text-sm text-muted-foreground"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

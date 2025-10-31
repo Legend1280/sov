@@ -24,6 +24,16 @@ import Stack from '@/components/layout/Stack';
 import Tabs, { TabPanel } from '@/components/layout/Tabs';
 import Split from '@/components/layout/Split';
 
+// Mirror components
+import MirrorContainer from '@/components/mirror/MirrorContainer';
+import MirrorHeader from '@/components/mirror/MirrorHeader';
+import MirrorNavigator from '@/components/mirror/MirrorNavigator';
+import MirrorViewport from '@/components/mirror/MirrorViewport';
+import MirrorSurfaceViewer from '@/components/mirror/MirrorSurfaceViewer';
+import ResizablePanel from '@/components/mirror/ResizablePanel';
+import ThemeSwitcher from '@/components/mirror/ThemeSwitcher';
+import UploadButton from '@/components/mirror/UploadButton';
+
 /**
  * Register all core and layout components
  */
@@ -44,6 +54,16 @@ export function registerComponents(): void {
   componentRegistry.register('Tabs', Tabs);
   componentRegistry.register('TabPanel', TabPanel);
   componentRegistry.register('Split', Split);
+
+  // Mirror components
+  componentRegistry.register('MirrorContainer', MirrorContainer);
+  componentRegistry.register('MirrorHeader', MirrorHeader);
+  componentRegistry.register('MirrorNavigator', MirrorNavigator);
+  componentRegistry.register('MirrorViewport', MirrorViewport);
+  componentRegistry.register('MirrorSurfaceViewer', MirrorSurfaceViewer);
+  componentRegistry.register('ResizablePanel', ResizablePanel);
+  componentRegistry.register('ThemeSwitcher', ThemeSwitcher);
+  componentRegistry.register('UploadButton', UploadButton);
 
   console.log(`[Mirror] Registered ${componentRegistry.getTypes().length} components`);
 }
