@@ -9,6 +9,7 @@ import { registerComponents } from "./core/registerComponents";
 import { appRegistry } from "./core/AppRegistry";
 import { useEffect } from "react";
 import Home from "./pages/Home";
+import { CoreReasoner } from "./core/coreReasoner";
 
 function Router() {
   return (
@@ -30,6 +31,10 @@ function App() {
   useEffect(() => {
     // Register all components on startup
     registerComponents();
+    
+    // Initialize Core Reasoner for Pulse prototype
+    CoreReasoner.initialize();
+    console.log('[Mirror] Pulse prototype initialized');
     
     // Discover and register apps
     appRegistry.discoverApps().then(() => {

@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLayoutStore } from '@/core/LayoutStore';
+import { MirrorPulseViewer } from '@/components/mirror/MirrorPulseViewer';
 
 export default function Home() {
   const {
@@ -149,15 +150,11 @@ export default function Home() {
           ) : (
             <>
               <div
-                className="overflow-auto p-8 bg-background"
+                className="overflow-auto bg-background"
                 style={{ height: `${viewport1Height}%` }}
                 onDoubleClick={() => toggleFocus('viewport1')}
               >
-                <div className="absolute top-2 left-4 text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50 z-10">
-                  Viewport 1
-                </div>
-                <h2 className="text-2xl font-bold mb-4">Viewport 1</h2>
-                <p className="text-muted-foreground">Double-click to focus</p>
+                <MirrorPulseViewer />
               </div>
               {viewMode === 'split' && (
                 <>
