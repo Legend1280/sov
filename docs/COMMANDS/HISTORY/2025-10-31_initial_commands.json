@@ -1,0 +1,171 @@
+{
+  "version": "0.1",
+  "created_at": "2025-10-31T00:00:00Z",
+  "author": "Brady Simmons",
+  "description": "Initial five Mirror commands defining the foundation of the command-language interface",
+  "commands": [
+    {
+      "id": "cmd_001",
+      "syntax": "/clear [viewport]",
+      "description": "Clears the specified viewport and resets to blank state.",
+      "args": [
+        {
+          "name": "viewport",
+          "type": "string",
+          "required": true,
+          "description": "ID of viewport to clear (e.g., viewport1, viewport2)"
+        }
+      ],
+      "effect": "Removes all rendered components from the viewport and logs action to provenance.",
+      "version": "0.1",
+      "category": "layout",
+      "verified": true,
+      "status": "implemented",
+      "implementation_file": "/src/pages/Home.tsx",
+      "examples": [
+        "/clear viewport1",
+        "/clear viewport2"
+      ]
+    },
+    {
+      "id": "cmd_002",
+      "syntax": "/visualize pulse [source→target]",
+      "description": "Displays live PulseBridge telemetry between source and target systems.",
+      "args": [
+        {
+          "name": "source",
+          "type": "string",
+          "required": true,
+          "description": "Source system (e.g., mirror, core, sage)"
+        },
+        {
+          "name": "target",
+          "type": "string",
+          "required": true,
+          "description": "Target system (e.g., core, sage, kronos)"
+        }
+      ],
+      "effect": "Instantiates PulseViewer bound to specified bridge and subscribes to real-time Pulse stream.",
+      "version": "0.1",
+      "category": "visualization",
+      "verified": true,
+      "status": "implemented",
+      "implementation_files": [
+        "/src/components/mirror/MirrorPulseViewer.tsx",
+        "/src/components/mirror/PulseConnectionVisualizer.tsx"
+      ],
+      "examples": [
+        "/visualize pulse mirror→core",
+        "/visualize pulse core→sage"
+      ]
+    },
+    {
+      "id": "cmd_003",
+      "syntax": "/add tab [viewport] [label]",
+      "description": "Adds a new tabbed panel within a viewport and registers in layout schema.",
+      "args": [
+        {
+          "name": "viewport",
+          "type": "string",
+          "required": true,
+          "description": "Target viewport ID (viewport1 or viewport2)"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "Human-readable tab label (quoted string)"
+        }
+      ],
+      "effect": "Adds tab component to layout and updates Core schema record. Logs addition to provenance.",
+      "version": "0.1",
+      "category": "layout",
+      "verified": false,
+      "status": "planned",
+      "target_version": "0.2",
+      "implementation_file": "/src/core/layout/TabController.ts",
+      "examples": [
+        "/add tab viewport2 \"Provenance Log\"",
+        "/add tab viewport1 \"SAGE Rules\"",
+        "/add tab viewport2 \"Kronos Timeline\""
+      ]
+    },
+    {
+      "id": "cmd_004",
+      "syntax": "/show log [type]",
+      "description": "Displays a live event or ledger log feed.",
+      "args": [
+        {
+          "name": "type",
+          "type": "string",
+          "required": true,
+          "description": "Log type: shadow-ledger, provenance, or system-events",
+          "allowed_values": [
+            "shadow-ledger",
+            "provenance",
+            "system-events"
+          ]
+        }
+      ],
+      "effect": "Renders log viewer and subscribes to matching event topic. Displays real-time append-only updates.",
+      "version": "0.1",
+      "category": "data",
+      "verified": false,
+      "status": "planned",
+      "target_version": "0.2",
+      "implementation_files": [
+        "/src/components/logs/ShadowLedgerViewer.tsx",
+        "/src/components/logs/ProvenanceViewer.tsx"
+      ],
+      "examples": [
+        "/show log shadow-ledger",
+        "/show log provenance",
+        "/show log system-events"
+      ]
+    },
+    {
+      "id": "cmd_005",
+      "syntax": "/reset [scope]",
+      "description": "Restores a previous saved state from provenance history.",
+      "args": [
+        {
+          "name": "scope",
+          "type": "string",
+          "required": true,
+          "description": "Reset scope: viewport1, viewport2, layout, or session",
+          "allowed_values": [
+            "viewport1",
+            "viewport2",
+            "layout",
+            "session"
+          ]
+        }
+      ],
+      "effect": "Reverts layout or data to previous version and logs rollback. SAGE validates permission before execution.",
+      "version": "0.1",
+      "category": "governance",
+      "verified": false,
+      "status": "planned",
+      "target_version": "0.3",
+      "implementation_file": "/src/core/governance/ResetController.ts",
+      "governance_required": true,
+      "sage_rule": "sage:rollback_permission",
+      "examples": [
+        "/reset viewport1",
+        "/reset layout",
+        "/reset session"
+      ]
+    }
+  ],
+  "metadata": {
+    "total_commands": 5,
+    "implemented": 2,
+    "planned": 3,
+    "categories": {
+      "layout": 2,
+      "visualization": 1,
+      "data": 1,
+      "governance": 1
+    }
+  }
+}

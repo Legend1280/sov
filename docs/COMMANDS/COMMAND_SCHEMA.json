@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sovereignty.foundation/schemas/mirror-command.json",
+  "title": "MirrorCommand",
+  "description": "Schema for Mirror command definitions in the Sovereignty Stack",
+  "type": "object",
+  "required": ["id", "syntax", "description", "args", "effect", "version", "category", "verified", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique command identifier",
+      "pattern": "^cmd_[0-9]{3,}$"
+    },
+    "syntax": {
+      "type": "string",
+      "description": "Command syntax with argument placeholders",
+      "pattern": "^/[a-z]+"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of command purpose",
+      "minLength": 10,
+      "maxLength": 200
+    },
+    "args": {
+      "type": "array",
+      "description": "List of command arguments",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "required", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Argument name"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["string", "number", "boolean", "array", "object"],
+            "description": "Argument data type"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether argument is required"
+          },
+          "description": {
+            "type": "string",
+            "description": "Argument description"
+          },
+          "allowed_values": {
+            "type": "array",
+            "description": "Optional list of allowed values for enum-like arguments",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "effect": {
+      "type": "string",
+      "description": "Description of command's effect on the system",
+      "minLength": 10
+    },
+    "version": {
+      "type": "string",
+      "description": "Command version (semantic versioning)",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["layout", "visualization", "data", "governance", "system"],
+      "description": "Command category"
+    },
+    "verified": {
+      "type": "boolean",
+      "description": "Whether command has been verified and tested"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["implemented", "planned", "deprecated", "experimental"],
+      "description": "Current implementation status"
+    },
+    "implementation_file": {
+      "type": "string",
+      "description": "Primary implementation file path"
+    },
+    "implementation_files": {
+      "type": "array",
+      "description": "Multiple implementation file paths",
+      "items": {
+        "type": "string"
+      }
+    },
+    "target_version": {
+      "type": "string",
+      "description": "Target version for planned commands",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+    },
+    "governance_required": {
+      "type": "boolean",
+      "description": "Whether SAGE governance validation is required"
+    },
+    "sage_rule": {
+      "type": "string",
+      "description": "SAGE rule ID for governance validation"
+    },
+    "examples": {
+      "type": "array",
+      "description": "Example command invocations",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}
