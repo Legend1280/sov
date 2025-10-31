@@ -1,111 +1,274 @@
 /**
- * Home - Main application page
- * 
- * Loads and renders the default application using the AppContainer.
+ * Home - Main entry point for Mirror UI
  * 
  * Author: Brady Simmons
  * Copyright: © 2025 Sovereignty Foundation. All rights reserved.
  */
 
-import { useEffect, useState } from 'react';
-import { useMirror } from '@/core/MirrorContext';
-import Renderer from '@/components/core/Renderer';
-import { LayoutNode } from '@/types/schema';
+import { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { useLayoutStore } from '@/core/LayoutStore';
 
 export default function Home() {
-  const { appRegistry } = useMirror();
-  const [appLayout, setAppLayout] = useState<LayoutNode | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    navigatorVisible,
+    navigatorWidth,
+    surfaceViewerVisible,
+    surfaceViewerWidth,
+    viewport1Height,
+    viewMode,
+    focusMode,
+    temporalMode,
+    toggleNavigator,
+    toggleSurfaceViewer,
+    toggleFocus,
+    resizeNavigator,
+    resizeSurfaceViewer,
+    resizeViewport,
+    setViewMode,
+    setTemporalMode,
+  } = useLayoutStore();
+
+  // Handle ESC key to exit focus mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && focusMode) {
+        toggleFocus(focusMode);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [focusMode, toggleFocus]);
+
+  const handleViewportResize = (delta: number) => {
+    const container = document.querySelector('main');
+    if (!container) return;
+    resizeViewport(delta, container.clientHeight);
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-center flex-1">
+          <span className="text-xl font-semibold tracking-tight">Mirror</span>
+        </div>
+
+        {/* View Mode Controls */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Full View"
+            onClick={() => setViewMode('full')}
+            className={viewMode === 'full' ? 'bg-secondary' : ''}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+            </svg>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Split View"
+            onClick={() => setViewMode('split')}
+            className={viewMode === 'split' ? 'bg-secondary' : ''}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="8" rx="2" />
+              <rect x="3" y="13" width="18" height="8" rx="2" />
+            </svg>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Left Only"
+            onClick={() => setViewMode('left-only')}
+            className={viewMode === 'left-only' ? 'bg-secondary' : ''}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="8" height="18" rx="2" />
+            </svg>
+          </Button>
+        </div>
+
+        {/* Right side - empty for future components */}
+        <div className="flex gap-2 flex-1 justify-end">
+          {/* Future components can go here */}
+        </div>
+      </header>
+
+      {/* Main Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Navigator */}
+        {navigatorVisible ? (
+          <>
+            <aside
+              className="bg-card border-r border-border flex flex-col"
+              style={{ width: `${navigatorWidth}px` }}
+            >
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-muted-foreground tracking-wider">NAVIGATOR</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleNavigator}
+                  className="h-6 w-6 p-0"
+                >
+                  ←
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <p className="text-sm text-muted-foreground">Navigator content</p>
+              </div>
+            </aside>
+            <ResizeHandle direction="vertical" onResize={resizeNavigator} />
+          </>
+        ) : (
+          <button
+            onClick={toggleNavigator}
+            className="w-10 bg-card border-r border-border flex items-center justify-center hover:bg-secondary"
+          >
+            →
+          </button>
+        )}
+
+        {/* Center Viewports */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {focusMode ? (
+            <div
+              className="flex-1 overflow-auto p-8 bg-background"
+              onDoubleClick={() => toggleFocus(focusMode)}
+            >
+              <h2 className="text-2xl font-bold mb-4">
+                {focusMode === 'viewport1' ? 'Viewport 1 (Focus Mode)' : 'Viewport 2 (Focus Mode)'}
+              </h2>
+              <p className="text-muted-foreground">Double-click to exit focus mode or press ESC</p>
+            </div>
+          ) : (
+            <>
+              <div
+                className="overflow-auto p-8 bg-background"
+                style={{ height: `${viewport1Height}%` }}
+                onDoubleClick={() => toggleFocus('viewport1')}
+              >
+                <div className="absolute top-2 left-4 text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50 z-10">
+                  Viewport 1
+                </div>
+                <h2 className="text-2xl font-bold mb-4">Viewport 1</h2>
+                <p className="text-muted-foreground">Double-click to focus</p>
+              </div>
+              {viewMode === 'split' && (
+                <>
+                  <ResizeHandle direction="horizontal" onResize={handleViewportResize} />
+                  <div
+                    className="overflow-auto p-8 bg-background"
+                    style={{ height: `${100 - viewport1Height}%` }}
+                    onDoubleClick={() => toggleFocus('viewport2')}
+                  >
+                    <div className="absolute top-2 left-4 text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50 z-10">
+                      Viewport 2
+                    </div>
+                    <h2 className="text-2xl font-bold mb-4">Viewport 2</h2>
+                    <p className="text-muted-foreground">Double-click to focus</p>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </main>
+
+        {/* Surface Viewer */}
+        {surfaceViewerVisible ? (
+          <>
+            <ResizeHandle direction="vertical" onResize={resizeSurfaceViewer} />
+            <aside
+              className="bg-card border-l border-border flex flex-col"
+              style={{ width: `${surfaceViewerWidth}px` }}
+            >
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-muted-foreground tracking-wider">SIDE VIEWPORT</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSurfaceViewer}
+                  className="h-6 w-6 p-0"
+                >
+                  ×
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <p className="text-sm text-muted-foreground">Side viewport content</p>
+              </div>
+            </aside>
+          </>
+        ) : (
+          <button
+            onClick={toggleSurfaceViewer}
+            className="w-10 bg-card border-l border-border flex items-center justify-center hover:bg-secondary"
+          >
+            ←
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Simple ResizeHandle component
+function ResizeHandle({ direction, onResize }: { direction: 'horizontal' | 'vertical'; onResize: (delta: number) => void }) {
+  const handleRef = useRef<HTMLDivElement>(null);
+  const isResizingRef = useRef(false);
+  const startPosRef = useRef(0);
 
   useEffect(() => {
-    const loadApp = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    const handle = handleRef.current;
+    if (!handle) return;
 
-        // Wait for app discovery to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
+    const handleMouseDown = (e: MouseEvent) => {
+      isResizingRef.current = true;
+      startPosRef.current = direction === 'vertical' ? e.clientX : e.clientY;
+      document.body.style.cursor = direction === 'vertical' ? 'ew-resize' : 'ns-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    };
 
-        // Try to load Mirror base app
-        let app = appRegistry.get('mirror-base');
-        
-        if (!app) {
-          // If not found, try to load it
-          try {
-            app = await appRegistry.load('mirror-base');
-          } catch (loadError) {
-            console.warn('[Home] Could not load DexaBooks app:', loadError);
-          }
-        }
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const currentPos = direction === 'vertical' ? e.clientX : e.clientY;
+      const delta = currentPos - startPosRef.current;
+      onResize(delta);
+      startPosRef.current = currentPos;
+    };
 
-        if (!app) {
-          throw new Error('No apps available. Please create an app in /src/apps/');
-        }
-
-        // Set as active app
-        await appRegistry.setActive(app.id);
-
-        // Create MirrorContainer layout
-        const layout: LayoutNode = {
-          type: 'MirrorContainer',
-          props: {
-            appId: app.id,
-            headerSchema: app.header,
-            navigatorSchema: app.navigator,
-            surfaceViewerSchema: app.surfaceViewer,
-            viewports: app.viewports || [
-              { id: 'viewport1', label: 'Viewport 1', schema: `${app.id}/main`, defaultHeight: 100 }
-            ]
-          }
-        };
-
-        setAppLayout(layout);
-        setLoading(false);
-      } catch (err) {
-        console.error('[Home] Failed to load app:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load application');
-        setLoading(false);
+    const handleMouseUp = () => {
+      if (isResizingRef.current) {
+        isResizingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
       }
     };
 
-    loadApp();
-  }, [appRegistry]);
+    handle.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="text-lg font-semibold">Loading Mirror...</div>
-          <div className="text-sm text-muted-foreground mt-2">Initializing application framework</div>
-        </div>
-      </div>
-    );
-  }
+    return () => {
+      handle.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [direction, onResize]);
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center max-w-md">
-          <div className="text-lg font-semibold text-destructive">Failed to load Mirror</div>
-          <div className="text-sm text-muted-foreground mt-2">{error}</div>
-          <div className="text-xs text-muted-foreground mt-4">
-            Check the console for more details.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!appLayout) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="text-lg font-semibold">No app loaded</div>
-        </div>
-      </div>
-    );
-  }
-
-  return <Renderer layout={appLayout} />;
+  return (
+    <div
+      ref={handleRef}
+      className="bg-border hover:bg-yellow-500/20 transition-colors"
+      style={{
+        cursor: direction === 'vertical' ? 'ew-resize' : 'ns-resize',
+        ...(direction === 'vertical' ? { width: '4px' } : { height: '4px' }),
+      }}
+    />
+  );
 }

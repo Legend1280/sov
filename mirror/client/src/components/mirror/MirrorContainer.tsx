@@ -1,8 +1,8 @@
 /**
- * MirrorContainer - Complete Mirror interface container
+ * MirrorContainer - Complete Mirror interface container with layout management
  * 
  * Renders the full Mirror interface with header, navigator, viewports, and surface viewer.
- * Uses schema-driven components for all UI elements.
+ * Implements resize, focus mode, and collapsible panels.
  * 
  * Author: Brady Simmons
  * Copyright: © 2025 Sovereignty Foundation. All rights reserved.
@@ -10,13 +10,11 @@
 
 import { useState, useEffect } from 'react';
 import { useMirror } from '@/core/MirrorContext';
+import { useLayoutStore } from '@/core/LayoutStore';
 import Renderer from '@/components/core/Renderer';
 import { MirrorLayoutSchema } from '@/types/schema';
-import MirrorHeader from './MirrorHeader';
-import MirrorNavigator, { NavigatorSection } from './MirrorNavigator';
-import MirrorViewport from './MirrorViewport';
-import MirrorSurfaceViewer from './MirrorSurfaceViewer';
 import ResizablePanel from './ResizablePanel';
+import { Button } from '@/components/ui/button';
 
 export interface MirrorContainerProps {
   appId: string;
@@ -45,6 +43,26 @@ export function MirrorContainer({
   const [viewportLayouts, setViewportLayouts] = useState<Map<string, MirrorLayoutSchema>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Layout state from Zustand
+  const {
+    navigatorVisible,
+    navigatorWidth,
+    surfaceViewerVisible,
+    surfaceViewerWidth,
+    viewport1Height,
+    viewMode,
+    focusMode,
+    temporalMode,
+    toggleNavigator,
+    toggleSurfaceViewer,
+    toggleFocus,
+    resizeNavigator,
+    resizeSurfaceViewer,
+    resizeViewport,
+    setViewMode,
+    setTemporalMode,
+  } = useLayoutStore();
 
   // Load all schemas
   useEffect(() => {
@@ -85,7 +103,7 @@ export function MirrorContainer({
         }
 
         // Load viewport schemas
-        const viewportLayoutMap = new Map<string, MirrorLayoutSchema>();
+        const viewportLayoutMap = new Map<MirrorLayoutSchema>();
         for (const viewport of viewports) {
           const layout = await loadSchema(viewport.schema);
           viewportLayoutMap.set(viewport.id, layout);
@@ -102,6 +120,23 @@ export function MirrorContainer({
 
     loadSchemas();
   }, [appId, headerSchema, navigatorSchema, surfaceViewerSchema, viewports]);
+
+  // Handle ESC key to exit focus mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && focusMode) {
+        toggleFocus(focusMode);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [focusMode, toggleFocus]);
+
+  const handleViewportResize = (delta: number) => {
+    const container = document.querySelector('main');
+    if (!container) return;
+    resizeViewport(delta, container.clientHeight);
+  };
 
   if (loading) {
     return (
@@ -128,49 +163,211 @@ export function MirrorContainer({
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      {headerLayout && (
-        <Renderer layout={headerLayout.viewports.header[0]} />
-      )}
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex-1" />
+        
+        {/* View Mode Controls */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Full View"
+            onClick={() => setViewMode('full')}
+            className={viewMode === 'full' ? 'bg-secondary' : ''}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+            </svg>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Split View"
+            onClick={() => setViewMode('split')}
+            className={viewMode === 'split' ? 'bg-secondary' : ''}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="8" rx="2" />
+              <rect x="3" y="13" width="18" height="8" rx="2" />
+            </svg>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Left Only"
+            onClick={() => setViewMode('left-only')}
+            className={viewMode === 'left-only' ? 'bg-secondary' : ''}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="8" height="18" rx="2" />
+            </svg>
+          </Button>
+        </div>
+
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-semibold tracking-tight">Mirror</span>
+        </div>
+
+        {/* Temporal Controls */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTemporalMode('past')}
+            className={temporalMode === 'past' ? 'bg-secondary' : ''}
+          >
+            Past
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTemporalMode('present')}
+            className={temporalMode === 'present' ? 'bg-secondary' : ''}
+          >
+            Present
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTemporalMode('future')}
+            className={temporalMode === 'future' ? 'bg-secondary' : ''}
+          >
+            Future
+          </Button>
+          <Button variant="default" size="sm">
+            Upload
+          </Button>
+        </div>
+      </header>
 
       {/* Main Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Navigator */}
-        {navLayout && (
+        {navigatorVisible ? (
           <>
-            <Renderer layout={navLayout.viewports.navigator[0]} />
-            <ResizablePanel direction="vertical" />
+            <aside
+              className="bg-card border-r border-border flex flex-col transition-all duration-300"
+              style={{ width: `${navigatorWidth}px` }}
+            >
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-muted-foreground tracking-wider">NAVIGATOR</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleNavigator}
+                  className="h-6 w-6 p-0"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                {navLayout && navLayout.viewports && navLayout.viewports.navigator && navLayout.viewports.navigator[0] && (
+                  <Renderer layout={navLayout.viewports.navigator[0]} />
+                )}
+              </div>
+            </aside>
+            <ResizablePanel direction="vertical" onResize={resizeNavigator} />
           </>
+        ) : (
+          <button
+            onClick={toggleNavigator}
+            className="w-10 bg-card border-r border-border flex items-center justify-center hover:bg-secondary transition-all duration-200"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         )}
 
         {/* Center Viewports */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {viewports.map((viewport, index) => {
-            const layout = viewportLayouts.get(viewport.id);
-            if (!layout) return null;
-
-            return (
-              <div key={viewport.id} className="flex-1 overflow-hidden">
-                <MirrorViewport
-                  id={viewport.id}
-                  label={viewport.label}
-                  height={viewport.defaultHeight}
-                >
-                  {layout.viewports && layout.viewports.viewport1 && layout.viewports.viewport1[0] && (
-                    <Renderer layout={layout.viewports.viewport1[0]} />
-                  )}
-                </MirrorViewport>
-                {index < viewports.length - 1 && <ResizablePanel direction="horizontal" />}
+          {focusMode ? (
+            <div
+              className="flex-1 overflow-hidden"
+              onDoubleClick={() => toggleFocus(focusMode)}
+            >
+              {focusMode === 'viewport1' && viewportLayouts.get(viewports[0]?.id) && (
+                <Renderer layout={viewportLayouts.get(viewports[0].id)!.viewports.viewport1[0]} />
+              )}
+              {focusMode === 'viewport2' && viewportLayouts.get(viewports[1]?.id) && (
+                <Renderer layout={viewportLayouts.get(viewports[1].id)!.viewports.viewport1[0]} />
+              )}
+            </div>
+          ) : (
+            <>
+              <div
+                className="overflow-hidden relative"
+                style={{ height: `${viewport1Height}%` }}
+                onDoubleClick={() => toggleFocus('viewport1')}
+              >
+                <div className="absolute top-2 left-4 text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50 z-10">
+                  Viewport 1
+                </div>
+                {viewportLayouts.get(viewports[0]?.id) && viewportLayouts.get(viewports[0].id)!.viewports.viewport1 && (
+                  <Renderer layout={viewportLayouts.get(viewports[0].id)!.viewports.viewport1[0]} />
+                )}
               </div>
-            );
-          })}
+              {viewMode === 'split' && (
+                <>
+                  <ResizablePanel direction="horizontal" onResize={handleViewportResize} />
+                  <div
+                    className="overflow-hidden relative"
+                    style={{ height: `${100 - viewport1Height}%` }}
+                    onDoubleClick={() => toggleFocus('viewport2')}
+                  >
+                    <div className="absolute top-2 left-4 text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50 z-10">
+                      Viewport 2
+                    </div>
+                    {viewportLayouts.get(viewports[1]?.id) && viewportLayouts.get(viewports[1].id)!.viewports.viewport1 && (
+                      <Renderer layout={viewportLayouts.get(viewports[1].id)!.viewports.viewport1[0]} />
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </main>
 
         {/* Surface Viewer */}
-        {surfaceLayout && (
+        {surfaceViewerVisible ? (
           <>
-            <ResizablePanel direction="vertical" />
-            <Renderer layout={surfaceLayout.viewports.surfaceViewer[0]} />
+            <ResizablePanel direction="vertical" onResize={resizeSurfaceViewer} />
+            <aside
+              className="bg-card border-l border-border flex flex-col transition-all duration-300"
+              style={{ width: `${surfaceViewerWidth}px` }}
+            >
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-muted-foreground tracking-wider">SURFACE VIEWER</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSurfaceViewer}
+                  className="h-6 w-6 p-0"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {surfaceLayout && surfaceLayout.viewports && surfaceLayout.viewports.surfaceViewer && surfaceLayout.viewports.surfaceViewer[0] && (
+                  <Renderer layout={surfaceLayout.viewports.surfaceViewer[0]} />
+                )}
+              </div>
+            </aside>
           </>
+        ) : (
+          <button
+            onClick={toggleSurfaceViewer}
+            className="w-10 bg-card border-l border-border flex items-center justify-center hover:bg-secondary transition-all duration-200"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
         )}
       </div>
     </div>
