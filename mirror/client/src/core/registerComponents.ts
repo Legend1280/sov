@@ -34,6 +34,7 @@ import ResizablePanel from '@/components/mirror/ResizablePanel';
 import ThemeSwitcher from '@/components/mirror/ThemeSwitcher';
 import UploadButton from '@/components/mirror/UploadButton';
 import { MirrorPulseViewer } from '@/components/mirror/MirrorPulseViewer';
+import { PulseConnectionVisualizer } from '@/components/mirror/PulseConnectionVisualizer';
 
 /**
  * Register all core and layout components
@@ -66,6 +67,7 @@ export function registerComponents(): void {
   componentRegistry.register('ThemeSwitcher', ThemeSwitcher);
   componentRegistry.register('UploadButton', UploadButton);
   componentRegistry.register('MirrorPulseViewer', MirrorPulseViewer);
+  componentRegistry.register('PulseConnectionVisualizer', PulseConnectionVisualizer);
 
   console.log(`[Mirror] Registered ${componentRegistry.getTypes().length} components`);
 }

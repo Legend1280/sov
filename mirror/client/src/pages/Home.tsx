@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLayoutStore } from '@/core/LayoutStore';
 import { MirrorPulseViewer } from '@/components/mirror/MirrorPulseViewer';
+import { PulseConnectionVisualizer } from '@/components/mirror/PulseConnectionVisualizer';
 
 export default function Home() {
   const {
@@ -167,8 +168,7 @@ export default function Home() {
                     <div className="absolute top-2 left-4 text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50 z-10">
                       Viewport 2
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">Viewport 2</h2>
-                    <p className="text-muted-foreground">Double-click to focus</p>
+                    <PulseConnectionVisualizer />
                   </div>
                 </>
               )}
