@@ -8,7 +8,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLayoutStore } from '@/core/LayoutStore';
-import { MirrorPulseViewer } from '@/components/mirror/MirrorPulseViewer';
 import { PulseConnectionVisualizer } from '@/components/mirror/PulseConnectionVisualizer';
 
 export default function Home() {
@@ -155,7 +154,10 @@ export default function Home() {
                 style={{ height: `${viewport1Height}%` }}
                 onDoubleClick={() => toggleFocus('viewport1')}
               >
-                <MirrorPulseViewer />
+                <div className="absolute top-2 left-4 text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-50 z-10">
+                  Viewport 1
+                </div>
+                {/* Viewport 1 is intentionally blank */}
               </div>
               {viewMode === 'split' && (
                 <>
