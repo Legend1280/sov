@@ -1,8 +1,8 @@
 {
   "total_epochs": 10,
-  "best_val_loss": 0.024238574132323266,
-  "training_time_hours": 0.005681562357478672,
-  "final_train_loss": 0.031234474311214545,
+  "best_val_loss": 0.024037185311317443,
+  "training_time_hours": 0.00592934250831604,
+  "final_train_loss": 0.030981187383795895,
   "configuration": {
     "data_dir": "./data_transformed",
     "save_dir": "/workspace/outputs_v1",
