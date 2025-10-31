@@ -16,15 +16,16 @@
  * Copyright: © 2025 Sovereignty Foundation. All rights reserved.
  */
 
-import { PulseBridge, PulseObject } from './pulse/PulseBridge';
+import { PulseBridge, PulseObject, PulseIntent } from './pulse/PulseBridge';
 
 export interface ReasonerResponse {
   original: string;
   processed: string;
   metadata: {
-    timestamp: number;
+    timestamp: string;
     coherence: number;
     reasoning: string;
+    vector_id: string;
   };
 }
 
@@ -37,22 +38,9 @@ class CoreReasonerMock {
   initialize(): void {
     if (this.isInitialized) return;
 
-    // Listen for intents from Mirror
-    PulseBridge.on('mirror:intent:*', (pulse: PulseObject) => {
+    // Listen for all intents from Mirror
+    PulseBridge.on('mirror:*', (pulse: PulseObject) => {
       this.handleIntent(pulse);
-    });
-
-    // Listen for specific intent types
-    PulseBridge.on('intent:update', (pulse: PulseObject) => {
-      this.handleUpdate(pulse);
-    });
-
-    PulseBridge.on('intent:query', (pulse: PulseObject) => {
-      this.handleQuery(pulse);
-    });
-
-    PulseBridge.on('intent:create', (pulse: PulseObject) => {
-      this.handleCreate(pulse);
     });
 
     this.isInitialized = true;
@@ -60,19 +48,31 @@ class CoreReasonerMock {
   }
 
   /**
-   * Handle generic intent
+   * Handle any intent from Mirror
    */
   private handleIntent(pulse: PulseObject): void {
-    console.log('[CoreReasoner] Received intent:', pulse);
+    console.log('[CoreReasoner] Received pulse:', pulse);
 
-    const response = this.reason(pulse.payload);
-
-    // Send response back to Mirror
-    PulseBridge.send('core:response', response, {
-      source: 'core',
-      target: 'mirror',
-      coherence: this.calculateCoherence(pulse.payload, response),
-    });
+    // Route based on intent
+    switch (pulse.intent) {
+      case 'update':
+        this.handleUpdate(pulse);
+        break;
+      case 'query':
+        this.handleQuery(pulse);
+        break;
+      case 'create':
+        this.handleCreate(pulse);
+        break;
+      case 'govern':
+        this.handleGovern(pulse);
+        break;
+      case 'reflect':
+        this.handleReflect(pulse);
+        break;
+      default:
+        console.warn('[CoreReasoner] Unknown intent:', pulse.intent);
+    }
   }
 
   /**
@@ -85,17 +85,14 @@ class CoreReasonerMock {
       original: pulse.payload?.text || '',
       processed: `Updated: ${pulse.payload?.text || 'unknown'}`,
       metadata: {
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
         coherence: 0.95,
         reasoning: 'Update processed successfully',
+        vector_id: this.generateVectorId(),
       },
     };
 
-    PulseBridge.send('core:update:complete', response, {
-      source: 'core',
-      target: 'mirror',
-      coherence: 0.95,
-    });
+    this.sendResponse('update', response, pulse, 0.95);
   }
 
   /**
@@ -108,17 +105,14 @@ class CoreReasonerMock {
       original: pulse.payload?.text || '',
       processed: `Query result for: ${pulse.payload?.text || 'unknown'}`,
       metadata: {
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
         coherence: 0.88,
         reasoning: 'Query executed against knowledge base',
+        vector_id: this.generateVectorId(),
       },
     };
 
-    PulseBridge.send('core:query:result', response, {
-      source: 'core',
-      target: 'mirror',
-      coherence: 0.88,
-    });
+    this.sendResponse('query', response, pulse, 0.88);
   }
 
   /**
@@ -131,54 +125,85 @@ class CoreReasonerMock {
       original: pulse.payload?.text || '',
       processed: `Created: ${pulse.payload?.text || 'unknown'}`,
       metadata: {
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
         coherence: 0.92,
         reasoning: 'Object created in ontology',
+        vector_id: this.generateVectorId(),
       },
     };
 
-    PulseBridge.send('core:create:complete', response, {
-      source: 'core',
+    this.sendResponse('create', response, pulse, 0.92);
+  }
+
+  /**
+   * Handle govern intent
+   */
+  private handleGovern(pulse: PulseObject): void {
+    console.log('[CoreReasoner] Processing govern:', pulse.payload);
+
+    const response: ReasonerResponse = {
+      original: pulse.payload?.text || '',
+      processed: `Governance check: ${pulse.payload?.text || 'unknown'}`,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        coherence: 0.98,
+        reasoning: 'SAGE governance validation complete',
+        vector_id: this.generateVectorId(),
+      },
+    };
+
+    this.sendResponse('govern', response, pulse, 0.98);
+  }
+
+  /**
+   * Handle reflect intent
+   */
+  private handleReflect(pulse: PulseObject): void {
+    console.log('[CoreReasoner] Processing reflect:', pulse.payload);
+
+    const response: ReasonerResponse = {
+      original: pulse.payload?.text || '',
+      processed: `Reflection: ${pulse.payload?.text || 'unknown'}`,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        coherence: 0.96,
+        reasoning: 'Bidirectional reflection confirmed',
+        vector_id: this.generateVectorId(),
+      },
+    };
+
+    this.sendResponse('reflect', response, pulse, 0.96);
+  }
+
+  /**
+   * Send a response back to Mirror
+   */
+  private sendResponse(
+    intent: PulseIntent,
+    response: ReasonerResponse,
+    originalPulse: PulseObject,
+    coherence: number
+  ): void {
+    PulseBridge.emit({
+      origin: 'core',
       target: 'mirror',
-      coherence: 0.92,
+      intent,
+      payload: response,
+      coherence,
+      sage_ruleset: originalPulse.sage_ruleset,
+      vector_ids: [response.metadata.vector_id],
+      provenance: {
+        initiator: 'core:reasoner',
+        authorized_by: 'sage:default',
+      },
     });
   }
 
   /**
-   * Mock reasoning function
-   * In production, this would call the actual SAGE/Kronos/Scribe stack
+   * Generate a mock vector ID
    */
-  private reason(input: any): ReasonerResponse {
-    const text = typeof input === 'string' ? input : input?.text || JSON.stringify(input);
-
-    return {
-      original: text,
-      processed: `[Core Reasoner] Processed: "${text}"`,
-      metadata: {
-        timestamp: Date.now(),
-        coherence: this.calculateCoherence(text, text),
-        reasoning: 'Mock semantic processing complete',
-      },
-    };
-  }
-
-  /**
-   * Calculate coherence between input and output
-   * Simplified version - in production would use vector embeddings
-   */
-  private calculateCoherence(input: any, output: any): number {
-    // Mock coherence calculation
-    // In production, this would compare vector embeddings
-    const inputStr = JSON.stringify(input);
-    const outputStr = JSON.stringify(output);
-
-    // Simple heuristic: if output contains input, high coherence
-    if (outputStr.includes(inputStr)) {
-      return 0.9 + Math.random() * 0.1; // 0.9-1.0
-    }
-
-    // Otherwise, moderate coherence
-    return 0.7 + Math.random() * 0.2; // 0.7-0.9
+  private generateVectorId(): string {
+    return `vec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
 

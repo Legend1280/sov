@@ -25,44 +25,44 @@ export function MirrorPulseViewer() {
     });
   }, [onPulse]);
 
-  const handleSendIntent = () => {
+  const handleSendIntent = (intentType: 'update' | 'query' | 'create' | 'govern' | 'reflect') => {
     if (!inputText.trim()) return;
 
-    sendPulse('intent:update', { text: inputText });
+    sendPulse(intentType, { text: inputText });
     setInputText('');
   };
 
-  const handleSendQuery = () => {
-    if (!inputText.trim()) return;
-
-    sendPulse('intent:query', { text: inputText });
-    setInputText('');
-  };
-
-  const handleSendCreate = () => {
-    if (!inputText.trim()) return;
-
-    sendPulse('intent:create', { text: inputText });
-    setInputText('');
-  };
-
-  const getCoherenceColor = (coherence?: number): string => {
-    if (!coherence) return 'text-muted-foreground';
+  const getCoherenceColor = (coherence: number): string => {
     if (coherence >= 0.9) return 'text-green-500';
     if (coherence >= 0.7) return 'text-yellow-500';
     return 'text-red-500';
   };
 
-  const getSourceColor = (source: string): string => {
-    switch (source) {
+  const getOriginColor = (origin: string): string => {
+    switch (origin) {
       case 'mirror':
         return 'text-blue-400';
       case 'core':
         return 'text-purple-400';
       case 'sage':
         return 'text-green-400';
+      case 'kronos':
+        return 'text-orange-400';
       default:
         return 'text-gray-400';
+    }
+  };
+
+  const getStatusBadge = (status: string): string => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-500/20 text-green-400 border-green-500/50';
+      case 'decayed':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
+      case 'terminated':
+        return 'bg-red-500/20 text-red-400 border-red-500/50';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
     }
   };
 
@@ -83,20 +83,26 @@ export function MirrorPulseViewer() {
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendIntent()}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendIntent('update')}
             placeholder="Enter message to send to Core..."
             className="flex-1 px-3 py-2 bg-background border border-input rounded-md text-sm"
           />
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleSendIntent} size="sm" variant="default">
-            Send Update
+          <Button onClick={() => handleSendIntent('update')} size="sm" variant="default">
+            Update
           </Button>
-          <Button onClick={handleSendQuery} size="sm" variant="secondary">
-            Send Query
+          <Button onClick={() => handleSendIntent('query')} size="sm" variant="secondary">
+            Query
           </Button>
-          <Button onClick={handleSendCreate} size="sm" variant="outline">
-            Send Create
+          <Button onClick={() => handleSendIntent('create')} size="sm" variant="outline">
+            Create
+          </Button>
+          <Button onClick={() => handleSendIntent('govern')} size="sm" variant="outline">
+            Govern
+          </Button>
+          <Button onClick={() => handleSendIntent('reflect')} size="sm" variant="outline">
+            Reflect
           </Button>
           <Button 
             onClick={() => {
@@ -127,27 +133,34 @@ export function MirrorPulseViewer() {
               >
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <span className={`font-semibold ${getSourceColor(pulse.source)}`}>
-                      {pulse.source}
+                    <span className={`font-semibold ${getOriginColor(pulse.origin)}`}>
+                      {pulse.origin}
                     </span>
                     <span className="text-muted-foreground">→</span>
-                    <span className={`font-semibold ${getSourceColor(pulse.target)}`}>
+                    <span className={`font-semibold ${getOriginColor(pulse.target)}`}>
                       {pulse.target}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/50">
+                      {pulse.intent}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ${getStatusBadge(pulse.status)}`}>
+                      {pulse.status}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {pulse.coherence !== undefined && (
-                      <span className={`text-xs font-semibold ${getCoherenceColor(pulse.coherence)}`}>
-                        {(pulse.coherence * 100).toFixed(0)}%
-                      </span>
-                    )}
+                    <span className={`text-xs font-semibold ${getCoherenceColor(pulse.coherence)}`}>
+                      {(pulse.coherence * 100).toFixed(0)}%
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(pulse.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>
-                <div className="text-xs text-muted-foreground mb-1">
-                  [{pulse.topic}]
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                  <span>SAGE: {pulse.sage_ruleset}</span>
+                  {pulse.vector_ids.length > 0 && (
+                    <span>| Vectors: {pulse.vector_ids.length}</span>
+                  )}
                 </div>
                 {pulse.payload && (
                   <div className="text-xs bg-background/50 p-2 rounded border border-border/50 mt-2">
@@ -158,6 +171,9 @@ export function MirrorPulseViewer() {
                     </pre>
                   </div>
                 )}
+                <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                  Initiator: {pulse.provenance.initiator} | Authorized by: {pulse.provenance.authorized_by}
+                </div>
               </div>
             ))}
           </div>
@@ -172,11 +188,14 @@ export function MirrorPulseViewer() {
             Avg Coherence:{' '}
             {log.length > 0
               ? (
-                  (log.reduce((sum, p) => sum + (p.coherence || 0), 0) / log.length) *
+                  (log.reduce((sum, p) => sum + p.coherence, 0) / log.length) *
                   100
                 ).toFixed(1)
               : '0'}
             %
+          </span>
+          <span>
+            Active: {log.filter(p => p.status === 'active').length}
           </span>
         </div>
       </div>

@@ -8,11 +8,11 @@
  */
 
 import { useEffect, useCallback, useRef } from 'react';
-import { PulseBridge, PulseObject } from './PulseBridge';
+import { PulseBridge, PulseObject, PulseIntent } from './PulseBridge';
 
 export interface UsePulseReturn {
   emitPulse: (pulse: Partial<PulseObject>) => void;
-  sendPulse: (topic: string, payload: any, options?: Partial<PulseObject>) => void;
+  sendPulse: (intent: PulseIntent, payload: any, options?: Partial<PulseObject>) => void;
   onPulse: (topic: string, handler: (pulse: PulseObject) => void) => void;
   pulses: PulseObject[];
   getAllPulses: () => PulseObject[];
@@ -36,15 +36,15 @@ export function usePulse(channel?: string): UsePulseReturn {
   const emitPulse = useCallback((pulse: Partial<PulseObject>) => {
     PulseBridge.emit({
       ...pulse,
-      source: pulse.source || (channel ? channel.split('↔')[0] : 'unknown'),
+      origin: pulse.origin || (channel ? channel.split('↔')[0] : 'unknown'),
       target: pulse.target || (channel ? channel.split('↔')[1] : 'unknown'),
     });
   }, [channel]);
 
-  const sendPulse = useCallback((topic: string, payload: any, options?: Partial<PulseObject>) => {
-    PulseBridge.send(topic, payload, {
+  const sendPulse = useCallback((intent: PulseIntent, payload: any, options?: Partial<PulseObject>) => {
+    PulseBridge.send(intent, payload, {
       ...options,
-      source: options?.source || (channel ? channel.split('↔')[0] : 'unknown'),
+      origin: options?.origin || (channel ? channel.split('↔')[0] : 'unknown'),
       target: options?.target || (channel ? channel.split('↔')[1] : 'unknown'),
     });
   }, [channel]);

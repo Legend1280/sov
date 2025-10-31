@@ -60,10 +60,10 @@ export const PulseConnectionVisualizer: React.FC = () => {
     if (!allPulses || !Array.isArray(allPulses)) return;
 
     // Calculate stats from pulses
-    const sent = allPulses.filter(p => p.source === 'mirror').length;
-    const received = allPulses.filter(p => p.source === 'core').length;
+    const sent = allPulses.filter(p => p.origin === 'mirror').length;
+    const received = allPulses.filter(p => p.origin === 'core').length;
     const coherences = allPulses
-      .filter(p => p.source === 'core' && p.coherence !== undefined)
+      .filter(p => p.origin === 'core' && p.coherence !== undefined)
       .map(p => p.coherence!);
     const avgCoherence = coherences.length > 0
       ? (coherences.reduce((a, b) => a + b, 0) / coherences.length) * 100
@@ -74,13 +74,13 @@ export const PulseConnectionVisualizer: React.FC = () => {
     // Create particle for the latest pulse
     if (allPulses.length > 0) {
       const latest = allPulses[allPulses.length - 1];
-      const isToCore = latest.source === 'mirror';
+      const isToCore = latest.origin === 'mirror';
       
       const newParticle: PulseParticle = {
         id: `${latest.timestamp}-${Math.random()}`,
         progress: 0,
         direction: isToCore ? 'toCore' : 'toMirror',
-        intent: latest.topic.split(':')[1] || 'unknown',
+        intent: latest.intent || 'unknown',
         coherence: latest.coherence,
       };
 
@@ -107,6 +107,8 @@ export const PulseConnectionVisualizer: React.FC = () => {
       case 'update': return { main: '#ec4899', glow: 'rgba(236, 72, 153, 0.6)' }; // pink
       case 'query': return { main: '#3b82f6', glow: 'rgba(59, 130, 246, 0.6)' }; // blue
       case 'create': return { main: '#f97316', glow: 'rgba(249, 115, 22, 0.6)' }; // orange
+      case 'govern': return { main: '#10b981', glow: 'rgba(16, 185, 129, 0.6)' }; // green
+      case 'reflect': return { main: '#f59e0b', glow: 'rgba(245, 158, 11, 0.6)' }; // amber
       default: return { main: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.6)' }; // purple
     }
   };
@@ -320,7 +322,7 @@ export const PulseConnectionVisualizer: React.FC = () => {
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex gap-6 text-sm justify-center">
+      <div className="mt-4 flex gap-4 text-sm justify-center">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50"></div>
           <span className="text-gray-400">Update</span>
@@ -332,6 +334,14 @@ export const PulseConnectionVisualizer: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-orange-500 shadow-lg shadow-orange-500/50"></div>
           <span className="text-gray-400">Create</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50"></div>
+          <span className="text-gray-400">Govern</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50"></div>
+          <span className="text-gray-400">Reflect</span>
         </div>
       </div>
     </div>
