@@ -1,0 +1,17 @@
+{
+  "total_epochs": 10,
+  "best_val_loss": 0.023346719145774842,
+  "training_time_hours": 0.00536602516969045,
+  "final_train_loss": 0.029768107047434465,
+  "configuration": {
+    "data_dir": "./data",
+    "save_dir": "/workspace/outputs",
+    "epochs": 10,
+    "batch_size": 80,
+    "learning_rate": 0.0001,
+    "log_interval": 50,
+    "val_split": 0.1,
+    "num_workers": 4,
+    "resume": null
+  }
+}
