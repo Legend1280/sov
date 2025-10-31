@@ -1,8 +1,8 @@
 {
-  "average_coherence": 0.8157382567186613,
-  "min_coherence": 0.6870871782302856,
-  "max_coherence": 0.9390212297439575,
-  "std_coherence": 0.06099136173725128,
-  "average_l2_distance": 0.9129190831571012,
+  "average_coherence": 0.809174311724869,
+  "min_coherence": 0.6645852327346802,
+  "max_coherence": 0.9375326633453369,
+  "std_coherence": 0.06569736450910568,
+  "average_l2_distance": 0.9138678763363812,
   "num_samples": 18884
 }
