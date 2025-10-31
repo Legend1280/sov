@@ -7,7 +7,7 @@ Exposes provenance for audit.
 """
 
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -19,6 +19,9 @@ import uuid
 
 from reasoner import get_reasoner
 from ingest import create_importer
+from pulse_bus import get_pulse_bus
+from pulse_bridge_ws import get_pulse_bridge
+from pulse_listeners import initialize_listeners
 
 # Initialize FastAPI
 app = FastAPI(
@@ -41,6 +44,14 @@ reasoner = get_reasoner("./core.db", "./ontology")
 
 # Initialize importer
 importer = create_importer(reasoner, reasoner.storage)
+
+# Initialize PulseBus and bridge
+pulse_bus = get_pulse_bus()
+pulse_bus.set_reasoner(reasoner)
+pulse_bridge = get_pulse_bridge()
+
+# Initialize Pulse listeners
+initialize_listeners(reasoner)
 
 # ==================== SANITIZATION ====================
 
@@ -586,6 +597,27 @@ def get_drift_analysis(object_id: str):
         raise HTTPException(status_code=500, detail=f"Drift analysis failed: {str(e)}")
 
 
+@app.websocket("/ws/pulse")
+async def websocket_pulse_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for Pulse communication
+    
+    Connects Mirror (TypeScript) to Core's PulseBus (Python)
+    Enables schema-native, event-driven communication
+    """
+    await pulse_bridge.connect(websocket)
+    try:
+        while True:
+            message = await websocket.receive_text()
+            await pulse_bridge.handle_message(websocket, message)
+    except WebSocketDisconnect:
+        pulse_bridge.disconnect(websocket)
+        print("[PulseBridge] Client disconnected")
+    except Exception as e:
+        print(f"[PulseBridge] WebSocket error: {e}")
+        pulse_bridge.disconnect(websocket)
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

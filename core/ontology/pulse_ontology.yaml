@@ -1,0 +1,81 @@
+objects:
+  PulseEvent:
+    inherits: Entity
+    description: "A semantic communication event between Mirror and Core"
+    properties:
+      source:
+        type: String
+        required: true
+        description: "Source system (e.g., 'mirror', 'core')"
+      target:
+        type: String
+        required: true
+        description: "Target system (e.g., 'core', 'mirror')"
+      topic:
+        type: String
+        required: true
+        description: "Communication channel (e.g., 'mirror↔core')"
+      intent:
+        type: String
+        required: true
+        description: "Pulse intent: update, query, create, govern, reflect"
+      payload:
+        type: String
+        required: true
+        description: "Message content or data being transmitted"
+      coherence:
+        type: Float
+        required: true
+        description: "Semantic coherence score (0.0-1.0)"
+      status:
+        type: String
+        required: true
+        description: "Pulse status: active, completed, failed"
+      sage_ruleset:
+        type: String
+        required: false
+        description: "SAGE governance ruleset applied"
+      vector_id:
+        type: String
+        required: false
+        description: "Associated vector embedding ID"
+      metadata:
+        type: Object
+        required: false
+        description: "Additional metadata (timestamp, reasoning, etc.)"
+
+  VisualComponent:
+    inherits: Entity
+    description: "A visual component bound to schema"
+    properties:
+      component_id:
+        type: String
+        required: true
+        description: "Unique component identifier"
+      component_type:
+        type: String
+        required: true
+        description: "Type of visual (e.g., 'GeometricConnector', 'PulseViewer')"
+      pulse_topic:
+        type: String
+        required: false
+        description: "Pulse topic this component subscribes to"
+      schema_source:
+        type: String
+        required: false
+        description: "Path to ontology schema"
+      props:
+        type: Object
+        required: false
+        description: "Component configuration properties"
+
+relation_types:
+  pulse_to_visual:
+    description: "PulseEvent is visualized by VisualComponent"
+    allowed_pairs:
+      - [PulseEvent, VisualComponent]
+  
+  pulse_sequence:
+    description: "One PulseEvent follows another in temporal sequence"
+    allowed_pairs:
+      - [PulseEvent, PulseEvent]

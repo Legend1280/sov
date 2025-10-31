@@ -42,11 +42,46 @@ export function usePulse(channel?: string): UsePulseReturn {
   }, [channel]);
 
   const sendPulse = useCallback((intent: PulseIntent, payload: any, options?: Partial<PulseObject>) => {
-    PulseBridge.send(intent, payload, {
+    const pulse = {
       ...options,
       origin: options?.origin || (channel ? channel.split('↔')[0] : 'unknown'),
       target: options?.target || (channel ? channel.split('↔')[1] : 'unknown'),
-    });
+    };
+    
+    // Send via PulseBridge (local/UI for immediate reactivity)
+    PulseBridge.send(intent, payload, pulse);
+    
+    // Emit to Core via WebSocket (schema-native, governed)
+    try {
+      const ws = (window as any).__PULSE_WS__;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'pulse',
+          topic: `core.reasoner.ingest`,
+          payload: {
+            object_type: 'PulseEvent',
+            source: pulse.origin,
+            target: pulse.target,
+            topic: channel || `${pulse.origin}↔${pulse.target}`,
+            intent: intent,
+            payload: typeof payload === 'string' ? payload : JSON.stringify(payload),
+            coherence: pulse.coherence || 0,
+            status: 'active',
+            sage_ruleset: pulse.sage_ruleset || 'default-governance',
+            vector_id: pulse.vector_id,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              reasoning: pulse.reasoning,
+              ...pulse.metadata
+            }
+          },
+          broadcast: false
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to emit Pulse to Core:', error);
+      // Don't block UI if Core is unavailable
+    }
   }, [channel]);
 
   const onPulse = useCallback((topic: string, handler: (pulse: PulseObject) => void) => {

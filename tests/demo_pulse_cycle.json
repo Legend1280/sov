@@ -1,0 +1,64 @@
+[
+  {
+    "source": "mirror",
+    "target": "core",
+    "topic": "mirror.intent",
+    "intent": "query",
+    "payload": {
+      "text": "Ping Core - Test semantic communication"
+    },
+    "coherence": 0.95,
+    "timestamp": "2025-10-31T18:00:00Z"
+  },
+  {
+    "source": "core",
+    "target": "mirror",
+    "topic": "core.reply",
+    "intent": "update",
+    "payload": {
+      "text": "Acknowledged - Core is operational",
+      "reasoning": "Received intent from Mirror, processing complete"
+    },
+    "coherence": 0.98,
+    "timestamp": "2025-10-31T18:00:01Z"
+  },
+  {
+    "source": "mirror",
+    "target": "sage",
+    "topic": "governance.validate",
+    "intent": "govern",
+    "payload": {
+      "action": "validate_pulse",
+      "pulse_id": "pulse_001"
+    },
+    "coherence": 0.92,
+    "timestamp": "2025-10-31T18:00:02Z"
+  },
+  {
+    "source": "sage",
+    "target": "mirror",
+    "topic": "governance.decision",
+    "intent": "govern",
+    "payload": {
+      "decision": "allow",
+      "rule_applied": "rule_003",
+      "confidence": 0.99
+    },
+    "coherence": 1.0,
+    "timestamp": "2025-10-31T18:00:03Z"
+  },
+  {
+    "source": "core",
+    "target": "sage",
+    "topic": "audit.log",
+    "intent": "reflect",
+    "payload": {
+      "event": "pulse_processed",
+      "pulse_id": "pulse_001",
+      "coherence": 0.95,
+      "status": "success"
+    },
+    "coherence": 0.97,
+    "timestamp": "2025-10-31T18:00:04Z"
+  }
+]

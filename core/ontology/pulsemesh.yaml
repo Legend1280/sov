@@ -1,0 +1,82 @@
+type: PulseMesh
+description: "Distributed semantic event bus topology and configuration"
+
+nodes:
+  - id: mirror
+    role: ui
+    description: "User interface and consciousness layer"
+    topics:
+      - mirror.intent
+      - mirror.update
+      - mirror.query
+    
+  - id: core
+    role: reasoner
+    description: "Semantic reasoning and ontology engine"
+    topics:
+      - core.reply
+      - core.status
+      - core.ingest
+      - core.reasoning
+    
+  - id: sage
+    role: governor
+    description: "Governance and validation layer"
+    topics:
+      - audit.log
+      - governance.decision
+      - governance.validate
+
+topics:
+  mirror.intent:
+    description: "User intentions and commands from Mirror UI"
+    source: mirror
+    targets: [core, sage]
+    
+  mirror.update:
+    description: "UI state updates and user interactions"
+    source: mirror
+    targets: [core]
+    
+  mirror.query:
+    description: "User queries requiring semantic search"
+    source: mirror
+    targets: [core]
+    
+  core.reply:
+    description: "Reasoning responses from Core to Mirror"
+    source: core
+    targets: [mirror]
+    
+  core.status:
+    description: "Core system status and health"
+    source: core
+    targets: [mirror, sage]
+    
+  core.ingest:
+    description: "Data ingestion and ontology updates"
+    source: core
+    targets: [sage]
+    
+  core.reasoning:
+    description: "Reasoning process and coherence metrics"
+    source: core
+    targets: [mirror, sage]
+    
+  audit.log:
+    description: "SAGE audit trail and provenance"
+    source: sage
+    targets: [core, mirror]
+    
+  governance.decision:
+    description: "SAGE governance decisions (allow/flag/deny)"
+    source: sage
+    targets: [core, mirror]
+    
+  governance.validate:
+    description: "Validation requests to SAGE"
+    source: [mirror, core]
+    targets: [sage]
+
+mode: stub
+version: "1.0.0"

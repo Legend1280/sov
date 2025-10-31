@@ -10,12 +10,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePulse } from '@/core/pulse/usePulse';
+import { Button } from '@/components/ui/button';
+import type { PulseIntent } from '@/core/pulse/PulseBridge';
 
 export function GeometricConnector() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [coherence, setCoherence] = useState(0);
   const [pulseCount, setPulseCount] = useState(0);
-  const { onPulse } = usePulse('mirror↔core');
+  const [inputText, setInputText] = useState('');
+  const { sendPulse, onPulse } = usePulse('mirror↔core');
 
   // Subscribe to Pulse events
   useEffect(() => {
@@ -208,6 +211,80 @@ export function GeometricConnector() {
         />
       </div>
       
+      {/* Input controls */}
+      <div className="px-6 py-3 bg-slate-900/50 border-t border-slate-700">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && inputText.trim()) {
+                sendPulse('update', inputText);
+                setInputText('');
+              }
+            }}
+            placeholder="Enter message to send to Core..."
+            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <Button
+            onClick={() => {
+              if (inputText.trim()) {
+                sendPulse('update', inputText);
+                setInputText('');
+              }
+            }}
+            className="bg-pink-600 hover:bg-pink-700"
+          >
+            Update
+          </Button>
+          <Button
+            onClick={() => {
+              if (inputText.trim()) {
+                sendPulse('query', inputText);
+                setInputText('');
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Query
+          </Button>
+          <Button
+            onClick={() => {
+              if (inputText.trim()) {
+                sendPulse('create', inputText);
+                setInputText('');
+              }
+            }}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            Create
+          </Button>
+          <Button
+            onClick={() => {
+              if (inputText.trim()) {
+                sendPulse('govern', inputText);
+                setInputText('');
+              }
+            }}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            Govern
+          </Button>
+          <Button
+            onClick={() => {
+              if (inputText.trim()) {
+                sendPulse('reflect', inputText);
+                setInputText('');
+              }
+            }}
+            className="bg-yellow-600 hover:bg-yellow-700"
+          >
+            Reflect
+          </Button>
+        </div>
+      </div>
+
       {/* Stats panel */}
       <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700 flex items-center justify-between">
         <div className="text-sm text-slate-400">

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useLayoutStore } from '@/core/LayoutStore';
 import { PulseConnectionVisualizer } from '@/components/mirror/PulseConnectionVisualizer';
 import { GeometricConnector } from '@/components/visualizations/GeometricConnector';
+import { ViewportPulseVisualizer } from '@/components/visualizations/ViewportPulseVisualizer';
 
 export default function Home() {
   const {
@@ -155,7 +156,7 @@ export default function Home() {
                 style={{ height: `${viewport1Height}%` }}
                 onDoubleClick={() => toggleFocus('viewport1')}
               >
-                <GeometricConnector />
+                <ViewportPulseVisualizer />
               </div>
               {viewMode === 'split' && (
                 <>
