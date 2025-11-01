@@ -230,32 +230,61 @@ export const SystemHealthVisualizer: React.FC = () => {
       timestamp: new Date().toISOString()
     };
     
-    // Trigger animation
-    setActivePulses(prev => [...prev, { from: 'mirror', to: 'core', progress: 0 }]);
+    // Trigger animation sequence
+    setActivePulses(prev => [...prev, { from: 'mirror', to: 'pulsemesh', progress: 0 }]);
+    
+    // Step 1: Mirror → PulseMesh
     setConnections(prev => prev.map(conn => {
       if (conn.from === 'mirror' && conn.to === 'pulsemesh') {
         return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
       }
-      if (conn.from === 'pulsemesh' && conn.to === 'core') {
-        setTimeout(() => {
-          setConnections(p => p.map(c => {
-            if (c.from === 'pulsemesh' && c.to === 'core') {
-              return { ...c, active: true, pulseCount: c.pulseCount + 1 };
-            }
-            return c;
-          }));
-        }, 500);
-      }
       return conn;
     }));
-    
-    // Update node status
     setNodes(prev => prev.map(node => {
-      if (['mirror', 'pulsemesh', 'core'].includes(node.id)) {
+      if (node.id === 'mirror' || node.id === 'pulsemesh') {
         return { ...node, status: 'healthy', lastPulse: Date.now() };
       }
       return node;
     }));
+    
+    // Step 2: PulseMesh → Core (500ms delay)
+    setTimeout(() => {
+      setActivePulses(prev => [...prev, { from: 'pulsemesh', to: 'core', progress: 0 }]);
+      setConnections(prev => prev.map(conn => {
+        if (conn.from === 'pulsemesh' && conn.to === 'core') {
+          return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
+        }
+        return conn;
+      }));
+      setNodes(prev => prev.map(node => {
+        if (node.id === 'core') {
+          return { ...node, status: 'healthy', lastPulse: Date.now() };
+        }
+        return node;
+      }));
+    }, 500);
+    
+    // Step 3: Core → SAGE, Kronos, Shadow (1000ms delay)
+    setTimeout(() => {
+      setActivePulses(prev => [
+        ...prev,
+        { from: 'core', to: 'sage', progress: 0 },
+        { from: 'core', to: 'kronos', progress: 0 },
+        { from: 'core', to: 'shadow', progress: 0 }
+      ]);
+      setConnections(prev => prev.map(conn => {
+        if (conn.from === 'core' && ['sage', 'kronos', 'shadow'].includes(conn.to)) {
+          return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
+        }
+        return conn;
+      }));
+      setNodes(prev => prev.map(node => {
+        if (['sage', 'kronos', 'shadow'].includes(node.id)) {
+          return { ...node, status: 'healthy', lastPulse: Date.now() };
+        }
+        return node;
+      }));
+    }, 1000);
   };
 
   return (

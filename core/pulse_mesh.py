@@ -24,8 +24,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Set, Any, List
 import asyncio
 import json
+import yaml
 from datetime import datetime
 import logging
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -56,6 +58,18 @@ node_connections: Dict[str, WebSocket] = {}
 # Message history (for replay and debugging)
 message_history: List[Dict[str, Any]] = []
 MAX_HISTORY = 1000
+
+# Load PulseMesh ontology for routing
+def load_mesh_ontology():
+    """Load pulsemesh.yaml for topic routing"""
+    ontology_path = Path("/home/ubuntu/sov/core/ontology/pulsemesh.yaml")
+    if ontology_path.exists():
+        with open(ontology_path, 'r') as f:
+            return yaml.safe_load(f)
+    return {}
+
+mesh_ontology = load_mesh_ontology()
+logger.info(f"[PulseMesh] Loaded ontology with {len(mesh_ontology.get('topics', {}))} topics")
 
 
 @app.get("/")
@@ -172,6 +186,32 @@ async def mesh_endpoint(websocket: WebSocket, topic: str):
             
             # Clean up disconnected subscribers
             topic_subscribers[topic] -= disconnected
+            
+            # Route to target topics based on ontology
+            topic_config = mesh_ontology.get('topics', {}).get(topic, {})
+            target_nodes = topic_config.get('targets', [])
+            
+            if target_nodes:
+                logger.info(f"[PulseMesh] Routing {topic} to targets: {target_nodes}")
+                
+                # For each target node, find their topics and broadcast
+                for target_node in target_nodes:
+                    # Find topics for this target node
+                    node_topics = []
+                    for node in mesh_ontology.get('nodes', []):
+                        if node.get('id') == target_node:
+                            node_topics = node.get('topics', [])
+                            break
+                    
+                    # Broadcast to all topics of target node
+                    for target_topic in node_topics:
+                        if target_topic in topic_subscribers:
+                            for subscriber in topic_subscribers[target_topic]:
+                                try:
+                                    await subscriber.send_text(json.dumps(pulse))
+                                    logger.info(f"[PulseMesh] Routed to {target_topic}")
+                                except Exception as e:
+                                    logger.error(f"[PulseMesh] Error routing to {target_topic}: {e}")
             
     except WebSocketDisconnect:
         logger.info(f"[PulseMesh] Client disconnected from topic: {topic}")
