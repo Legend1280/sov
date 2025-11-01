@@ -10,6 +10,15 @@ nodes:
       - mirror.update
       - mirror.query
     
+  - id: pulsemesh
+    role: relay
+    description: "Distributed event relay and mesh coordinator"
+    topics:
+      - system.genesis
+      - system.health_check
+      - system.health_response
+      - wake.node_ready
+    
   - id: core
     role: reasoner
     description: "Semantic reasoning and ontology engine"
@@ -26,57 +35,135 @@ nodes:
       - audit.log
       - governance.decision
       - governance.validate
+  
+  - id: kronos
+    role: temporal
+    description: "Temporal indexing and decay tracking"
+    topics:
+      - kronos.index
+      - kronos.decay
+      - kronos.query
+      - kronos.query_result
+  
+  - id: shadow
+    role: witness
+    description: "Provenance logging and audit trail"
+    topics:
+      - shadow.provenance
+      - shadow.query
+      - shadow.query_result
 
 topics:
+  # Mirror topics
   mirror.intent:
     description: "User intentions and commands from Mirror UI"
     source: mirror
-    targets: [core, sage]
+    targets: [core, sage, pulsemesh]
     
   mirror.update:
     description: "UI state updates and user interactions"
     source: mirror
-    targets: [core]
+    targets: [core, pulsemesh]
     
   mirror.query:
     description: "User queries requiring semantic search"
     source: mirror
     targets: [core]
+  
+  # System topics (Wake and health)
+  system.genesis:
+    description: "Wake genesis pulse - system awakening"
+    source: pulsemesh
+    targets: [mirror, core, sage, kronos, shadow]
+  
+  system.health_check:
+    description: "Health check request to all nodes"
+    source: pulsemesh
+    targets: [mirror, core, sage, kronos, shadow]
+  
+  system.health_response:
+    description: "Health status response from nodes"
+    source: [mirror, core, sage, kronos, shadow]
+    targets: [pulsemesh]
+  
+  wake.node_ready:
+    description: "Node ready signal after Wake initialization"
+    source: [mirror, core, sage, kronos, shadow]
+    targets: [pulsemesh]
     
+  # Core topics
   core.reply:
     description: "Reasoning responses from Core to Mirror"
     source: core
-    targets: [mirror]
+    targets: [mirror, pulsemesh]
     
   core.status:
     description: "Core system status and health"
     source: core
-    targets: [mirror, sage]
+    targets: [mirror, sage, pulsemesh]
     
   core.ingest:
     description: "Data ingestion and ontology updates"
     source: core
-    targets: [sage]
+    targets: [sage, kronos, shadow]
     
   core.reasoning:
     description: "Reasoning process and coherence metrics"
     source: core
-    targets: [mirror, sage]
-    
+    targets: [mirror, sage, kronos]
+  
+  # SAGE topics
   audit.log:
     description: "SAGE audit trail and provenance"
     source: sage
-    targets: [core, mirror]
+    targets: [core, mirror, shadow]
     
   governance.decision:
     description: "SAGE governance decisions (allow/flag/deny)"
     source: sage
-    targets: [core, mirror]
+    targets: [core, mirror, shadow]
     
   governance.validate:
     description: "Validation requests to SAGE"
     source: [mirror, core]
     targets: [sage]
+  
+  # Kronos topics
+  kronos.index:
+    description: "Request to index a Pulse event"
+    source: [core, sage, mirror]
+    targets: [kronos]
+  
+  kronos.decay:
+    description: "Coherence decay event notification"
+    source: kronos
+    targets: [core, sage, mirror]
+  
+  kronos.query:
+    description: "Temporal query request"
+    source: [core, mirror]
+    targets: [kronos]
+  
+  kronos.query_result:
+    description: "Temporal query results"
+    source: kronos
+    targets: [core, mirror]
+  
+  # Shadow topics
+  shadow.provenance:
+    description: "Provenance log entry"
+    source: [core, sage, kronos, mirror]
+    targets: [shadow]
+  
+  shadow.query:
+    description: "Provenance query request"
+    source: [core, mirror]
+    targets: [shadow]
+  
+  shadow.query_result:
+    description: "Provenance query results"
+    source: shadow
+    targets: [core, mirror]
 
-mode: stub
-version: "1.0.0"
+mode: distributed
+version: "1.0.1"

@@ -211,10 +211,65 @@ export const SystemHealthVisualizer: React.FC = () => {
   const healthyNodes = nodes.filter(n => n.status === 'healthy').length;
   const avgHealth = (healthyNodes / nodes.length) * 100;
 
+  // Send test Pulse
+  const sendTestPulse = () => {
+    const testPulse = {
+      id: `pulse_${Date.now()}`,
+      topic: 'mirror.intent',
+      source: 'mirror',
+      target: 'core',
+      intent: 'update',
+      payload: { message: 'Test Pulse from UI' },
+      metadata: { coherence: 0.95, timestamp: new Date().toISOString() },
+      status: 'active'
+    };
+    
+    // Simulate Pulse reception
+    const syntheticPulse = {
+      ...testPulse,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Trigger animation
+    setActivePulses(prev => [...prev, { from: 'mirror', to: 'core', progress: 0 }]);
+    setConnections(prev => prev.map(conn => {
+      if (conn.from === 'mirror' && conn.to === 'pulsemesh') {
+        return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
+      }
+      if (conn.from === 'pulsemesh' && conn.to === 'core') {
+        setTimeout(() => {
+          setConnections(p => p.map(c => {
+            if (c.from === 'pulsemesh' && c.to === 'core') {
+              return { ...c, active: true, pulseCount: c.pulseCount + 1 };
+            }
+            return c;
+          }));
+        }, 500);
+      }
+      return conn;
+    }));
+    
+    // Update node status
+    setNodes(prev => prev.map(node => {
+      if (['mirror', 'pulsemesh', 'core'].includes(node.id)) {
+        return { ...node, status: 'healthy', lastPulse: Date.now() };
+      }
+      return node;
+    }));
+  };
+
   return (
     <div className="w-full h-full bg-slate-900 p-6 overflow-hidden">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold text-cyan-400 mb-2">System Health Monitor</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-2xl font-bold text-cyan-400">System Health Monitor</h2>
+          <button
+            onClick={sendTestPulse}
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-mono text-sm transition-colors"
+          >
+            Send Test Pulse
+          </button>
+        </div>
         <div className="flex gap-6 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-500"></div>
