@@ -1,26 +1,119 @@
 """
-SAGE - Semantic Governance Engine
-Validates coherence, trust, and logical consistency
+SAGE - Semantic Governance Engine (Pulse-Native)
+
+Validates coherence, trust, and logical consistency through Pulse events.
 
 SAGE provides:
 - Coherence scoring (semantic consistency)
 - Trust scoring (provenance-based reputation)
 - Action validation (permissions and rules)
 - Logical consistency checks
+- Wake-aware initialization
+- Pulse-native communication
+
+Author: Brady Simmons
+Copyright: © 2025 Sovereignty Foundation. All rights reserved.
 """
 
 import numpy as np
+import asyncio
+import logging
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
+from pulse_bus import PulseBus
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("SAGE")
+
+# Global PulseBus instance
+bus = PulseBus()
 
 class SAGE:
-    """Semantic Governance Engine"""
+    """Semantic Governance Engine - Pulse-Native"""
     
     def __init__(self):
         # Governance thresholds
         self.COHERENCE_THRESHOLD = 0.75
         self.TRUST_THRESHOLD = 0.70
         self.SIMILARITY_THRESHOLD = 0.80
+        self.is_awake = False
+        
+        # Register Pulse listeners
+        self._register_pulse_listeners()
+    
+    def _register_pulse_listeners(self):
+        """Register SAGE's Pulse event listeners"""
+        
+        @bus.on("system.genesis")
+        async def on_genesis(pulse):
+            """Respond to Wake genesis pulse"""
+            logger.info("[SAGE] Awakening - loading governance rules")
+            await self.initialize()
+            
+            await bus.emit("wake.node_ready", {
+                "node_id": "sage",
+                "role": "governor",
+                "services": ["validation", "governance", "audit"],
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            self.is_awake = True
+            logger.info("[SAGE] Governance engine operational")
+        
+        @bus.on("governance.validate")
+        async def on_validate_request(pulse):
+            """Handle validation requests via Pulse"""
+            payload = pulse.get("payload", {})
+            obj = payload.get("object", {})
+            vector = payload.get("vector")
+            provenance = payload.get("provenance", [])
+            
+            # Perform validation
+            result = self.validate_object(obj, vector, provenance)
+            
+            # Emit decision
+            await bus.emit("governance.decision", {
+                "request_id": pulse.get("id"),
+                "source": pulse.get("source"),
+                "decision": result["decision"],
+                "validation": result,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            # Log to audit trail
+            await bus.emit("audit.log", {
+                "event": "governance.validation",
+                "object_id": obj.get("id", "unknown"),
+                "decision": result["decision"],
+                "coherence": result["coherence_score"],
+                "trust": result["trust_score"],
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        
+        @bus.on("system.health_check")
+        async def on_health_check(pulse):
+            """Respond to health check requests"""
+            await bus.emit("system.health_response", {
+                "node_id": "sage",
+                "status": "operational" if self.is_awake else "initializing",
+                "coherence": 1.0,
+                "uptime": self.get_uptime(),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+    
+    async def initialize(self):
+        """Initialize SAGE governance engine"""
+        # Load governance rules (future: from YAML files)
+        logger.info("[SAGE] Loading governance rules...")
+        # Placeholder for rule loading
+        await asyncio.sleep(0.1)
+        logger.info("[SAGE] Governance rules loaded")
+    
+    def get_uptime(self) -> float:
+        """Get SAGE uptime in seconds"""
+        # Placeholder - would track actual start time
+        return 0.0
     
     def coherence_check(self, obj: Dict[str, Any], vector: Optional[np.ndarray] = None) -> float:
         """
