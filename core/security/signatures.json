@@ -1,0 +1,35 @@
+{
+  "constitution_id": "SOV-CONST-001",
+  "signatures": {
+    "mirror": {
+      "constitution_hash": "SHA3-512:82be17951693abc9a6e68ce654015766eeff5c7bddd6e5b097b0ab73eafaebff8209b58f17a59b7b6c9a593c045e8cda4ddba7de3d825c2065e515f1bcf2aca8",
+      "node_signature": "3812c3fb92b237d74fc02473569b1a9598b94050fccafefc7ff0e4fbce1f3c73",
+      "signed_at": "2025-11-01T01:43:24.713081Z"
+    },
+    "core": {
+      "constitution_hash": "SHA3-512:82be17951693abc9a6e68ce654015766eeff5c7bddd6e5b097b0ab73eafaebff8209b58f17a59b7b6c9a593c045e8cda4ddba7de3d825c2065e515f1bcf2aca8",
+      "node_signature": "b54803f01ef581343efec5d369607f0849bac61ac16d64c90534c1fb32ced47d",
+      "signed_at": "2025-11-01T01:43:24.713275Z"
+    },
+    "sage": {
+      "constitution_hash": "SHA3-512:82be17951693abc9a6e68ce654015766eeff5c7bddd6e5b097b0ab73eafaebff8209b58f17a59b7b6c9a593c045e8cda4ddba7de3d825c2065e515f1bcf2aca8",
+      "node_signature": "e9a94b37e123d4dafd7c963cd307fcdf0159060347f4ac720b02a2d48d3407d4",
+      "signed_at": "2025-11-01T01:43:24.713574Z"
+    },
+    "kronos": {
+      "constitution_hash": "SHA3-512:82be17951693abc9a6e68ce654015766eeff5c7bddd6e5b097b0ab73eafaebff8209b58f17a59b7b6c9a593c045e8cda4ddba7de3d825c2065e515f1bcf2aca8",
+      "node_signature": "0618ba3848b53c5e2456fd2c5cd73e6c95f7d300523eb6245f4e487225ae6708",
+      "signed_at": "2025-11-01T01:43:24.713749Z"
+    },
+    "shadow": {
+      "constitution_hash": "SHA3-512:82be17951693abc9a6e68ce654015766eeff5c7bddd6e5b097b0ab73eafaebff8209b58f17a59b7b6c9a593c045e8cda4ddba7de3d825c2065e515f1bcf2aca8",
+      "node_signature": "5ae0fa60b6c7c325184c56ea9ee462a2f5df5f02c52d03cf970e12eb38bbb6e4",
+      "signed_at": "2025-11-01T01:43:24.714008Z"
+    },
+    "pulsemesh": {
+      "constitution_hash": "SHA3-512:82be17951693abc9a6e68ce654015766eeff5c7bddd6e5b097b0ab73eafaebff8209b58f17a59b7b6c9a593c045e8cda4ddba7de3d825c2065e515f1bcf2aca8",
+      "node_signature": "50712a6ebd91b00b911d41ec97280375657683751d1799c2fa1a742dd150a4f9",
+      "signed_at": "2025-11-01T01:43:24.714201Z"
+    }
+  }
+}

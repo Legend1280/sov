@@ -30,6 +30,11 @@ import logging
 from pathlib import Path
 from hashlib import sha256
 
+# Import constitutional alignment checker
+import sys
+sys.path.append(str(Path(__file__).parent / 'security'))
+from constitution_check import verify_node_alignment
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("PulseMesh")
@@ -145,10 +150,34 @@ async def secure_connect(websocket: WebSocket) -> str:
             await websocket.close(code=4003)
             return "Invalid Signature"
         
+        # Check constitutional alignment
         client_id = message["source"]
+        alignment = verify_node_alignment(client_id)
+        
+        if not alignment['aligned']:
+            logger.warning(f"[PulseMesh] Constitutional alignment failed for {client_id}: {alignment['reason']}")
+            
+            # Emit alignment failed event
+            await pulse_bus.emit("constitution.alignment.failed", {
+                "client_id": client_id,
+                "reason": alignment['reason'],
+                "constitution_hash": alignment.get('constitution_hash'),
+                "close_code": 4004
+            })
+            
+            await websocket.close(code=4004, reason=alignment.get('message', 'Not constitutionally aligned'))
+            return f"Constitutional alignment failed: {alignment['reason']}"
+        
         session_id = f"{client_id}_{int(datetime.utcnow().timestamp())}"
         ACTIVE_SESSIONS[client_id] = datetime.utcnow()
-        logger.info(f"[PulseMesh] Handshake OK from {client_id}")
+        logger.info(f"[PulseMesh] Handshake OK from {client_id} (constitutionally aligned)")
+        
+        # Emit constitutional alignment success
+        await pulse_bus.emit("constitution.alignment.verified", {
+            "client_id": client_id,
+            "constitution_hash": alignment['constitution_hash'],
+            "signed_at": alignment.get('signed_at')
+        })
         
         # Emit handshake success event
         await pulse_bus.emit("auth.handshake.success", {

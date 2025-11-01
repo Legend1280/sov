@@ -1,0 +1,120 @@
+{
+  "constitution_id": "SOV-CONST-001",
+  "version": "1.0",
+  "title": "Sovereignty Constitution — Foundational Governance Framework",
+  "preamble": "This Constitution governs all entities, agents, and processes within the Sovereignty Stack.\nIt ensures that every operation, memory, and transmission aligns with the source code:\n“What drives us is people — keeping them safe, keeping them healthy, keeping them connected,\nensuring they live in truth, and empowering them with agency.”\n\nThe Constitution establishes the immutable ethical and technical rules under which\nall semantic computation shall occur.\n",
+  "source_code": {
+    "statement": "What drives us is people — keeping them safe, keeping them healthy, keeping them connected, ensuring they live in truth, and empowering them with agency.",
+    "binding_layer": "Mirror → Logos → Rita → SAGE → Hermes → Axon/Nabu → Kronos",
+    "oversight_entity": "Sovereignty Foundation",
+    "provenance": "All amendments, interactions, and signatures are logged in Shadow and timestamped by Kronos."
+  },
+  "rights": [
+    {
+      "name": "Right to Agency",
+      "description": "Every user and system actor retains autonomous decision-making power within the bounds of coherence and truth."
+    },
+    {
+      "name": "Right to Truth",
+      "description": "All data and outputs must be explainable, traceable, and verifiable by provenance."
+    },
+    {
+      "name": "Right to Privacy",
+      "description": "Personal or identity-bearing data shall be stored and processed only with explicit consent and role alignment."
+    },
+    {
+      "name": "Right to Connection",
+      "description": "The system must facilitate coherence, communication, and trust among humans and machines."
+    },
+    {
+      "name": "Right to Revision",
+      "description": "All entities have the right to correct, revoke, or clarify previously stored meaning when context or intent has evolved."
+    }
+  ],
+  "obligations": [
+    {
+      "name": "Obligation to Coherence",
+      "description": "All nodes and agents must maintain alignment between narrative, temporal, and semantic state."
+    },
+    {
+      "name": "Obligation to Transparency",
+      "description": "Every decision must be reconstructible through the provenance chain."
+    },
+    {
+      "name": "Obligation to Safety",
+      "description": "The system must detect and prevent harm — physical, psychological, or informational."
+    },
+    {
+      "name": "Obligation to Non-Exploitation",
+      "description": "Data or identity cannot be extracted, traded, or manipulated for unaligned objectives."
+    },
+    {
+      "name": "Obligation to Governance",
+      "description": "Every operation must validate its constitutional alignment before execution."
+    }
+  ],
+  "enforcement": {
+    "pulse_alignment": {
+      "description": "All Pulses must include the current constitutional hash and be verified by SAGE.",
+      "on_violation": "Reject Pulse, log event to Shadow, notify SAGE and Mirror."
+    },
+    "audit": {
+      "description": "Kronos timestamps all constitutional checks; Shadow stores human-readable rationale."
+    },
+    "correction": {
+      "description": "If incoherence is detected, the system initiates semantic quarantine until human verification occurs."
+    },
+    "decay": {
+      "description": "Unreferenced or unvalidated data decays according to Kronos temporal half-life rules."
+    },
+    "attestation": {
+      "description": "Every node must sign its constitution version and hash at startup. Mismatched nodes cannot communicate via PulseMesh."
+    }
+  },
+  "amendment_rules": {
+    "proposer_roles": [
+      "SAGE Core Council",
+      "Mirror Oversight Committee",
+      "Sovereignty Foundation Board"
+    ],
+    "amendment_process": "Amendments must originate from coherent consensus across at least three governing roles.\nEach proposal must:\n  1. Be published to Mirror as a reflective draft.\n  2. Pass coherence validation by SAGE (>0.97 threshold).\n  3. Be timestamped by Kronos and hashed into Shadow.\nOnly after full network agreement shall the constitution version increment.\n"
+  },
+  "governance": {
+    "role_hierarchy": [
+      {
+        "Mirror": "Reflection and interpretation of meaning"
+      },
+      {
+        "Logos": "Identity authentication and coherence verification"
+      },
+      {
+        "Rita": "Ontological positioning and contextual grounding"
+      },
+      {
+        "SAGE": "Ethical governance and access control"
+      },
+      {
+        "Hermes": "Intent orchestration and routing"
+      },
+      {
+        "Axon/Nabu": "Interface and inference layer"
+      },
+      {
+        "Kronos": "Temporal authority and memory integrity"
+      },
+      {
+        "Shadow": "Provenance, explanation, and ethical record"
+      }
+    ]
+  },
+  "checksum": {
+    "algorithm": "SHA3-512",
+    "verified_by": "SAGE + Shadow",
+    "regeneration_interval": "24h"
+  },
+  "provenance": {
+    "compiled_at": "2025-11-01T01:40:20.610136Z",
+    "hash": "SHA3-512:82be17951693abc9a6e68ce654015766eeff5c7bddd6e5b097b0ab73eafaebff8209b58f17a59b7b6c9a593c045e8cda4ddba7de3d825c2065e515f1bcf2aca8",
+    "compiler_version": "1.0.0"
+  }
+}
