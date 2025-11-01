@@ -40,14 +40,18 @@ export const SystemHealthVisualizer: React.FC = () => {
   ]);
   const [activePulses, setActivePulses] = useState<Array<{ from: string; to: string; progress: number }>>([]);
 
-  // Update node status based on Pulses
+  // Listen to ALL Pulses and animate based on source/target
   useEffect(() => {
     if (pulses.length === 0) return;
 
     const latestPulse = pulses[pulses.length - 1];
-    const topic = latestPulse.topic;
     const source = latestPulse.source;
     const target = latestPulse.target;
+    
+    console.log('[SystemHealthVisualizer] Pulse received:', source, '→', target);
+    
+    // Trigger animation for this Pulse
+    animatePulseFlow(source, target);
 
     // Update node status
     setNodes(prev => prev.map(node => {
@@ -210,81 +214,56 @@ export const SystemHealthVisualizer: React.FC = () => {
   const totalPulses = connections.reduce((sum, conn) => sum + conn.pulseCount, 0);
   const healthyNodes = nodes.filter(n => n.status === 'healthy').length;
   const avgHealth = (healthyNodes / nodes.length) * 100;
+  
+  // Helper: Animate Pulse flow between nodes
+  const animatePulseFlow = (from: string, to: string) => {
+    // Add Pulse particle
+    setActivePulses(prev => [...prev, { from, to, progress: 0 }]);
+    
+    // Update connection
+    setConnections(prev => prev.map(conn => {
+      if (conn.from === from && conn.to === to) {
+        return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
+      }
+      return conn;
+    }));
+    
+    // Update node status
+    setNodes(prev => prev.map(node => {
+      if (node.id === from || node.id === to) {
+        return { ...node, status: 'healthy', lastPulse: Date.now() };
+      }
+      return node;
+    }));
+  };
 
   // Send test Pulse
   const sendTestPulse = () => {
+    // Send REAL Pulse via PulseBridge
     const testPulse = {
       id: `pulse_${Date.now()}`,
       topic: 'mirror.intent',
       source: 'mirror',
       target: 'core',
-      intent: 'update',
-      payload: { message: 'Test Pulse from UI' },
-      metadata: { coherence: 0.95, timestamp: new Date().toISOString() },
-      status: 'active'
+      intent: 'update' as const,
+      payload: { message: 'Test Pulse from UI', test: true },
+      coherence: 0.95,
+      status: 'active' as const,
+      sage_ruleset: 'default-governance',
+      metadata: {
+        timestamp: new Date().toISOString(),
+        reasoning: 'User clicked test button'
+      }
     };
     
-    // Simulate Pulse reception
-    const syntheticPulse = {
-      ...testPulse,
-      timestamp: new Date().toISOString()
-    };
+    // Import PulseBridge dynamically to avoid circular deps
+    import('../../core/pulse/PulseBridge').then(({ PulseBridge }) => {
+      PulseBridge.emit('mirror.intent', testPulse);
+      console.log('[SystemHealthVisualizer] Sent real Pulse:', testPulse);
+    });
     
-    // Trigger animation sequence
-    setActivePulses(prev => [...prev, { from: 'mirror', to: 'pulsemesh', progress: 0 }]);
-    
-    // Step 1: Mirror → PulseMesh
-    setConnections(prev => prev.map(conn => {
-      if (conn.from === 'mirror' && conn.to === 'pulsemesh') {
-        return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
-      }
-      return conn;
-    }));
-    setNodes(prev => prev.map(node => {
-      if (node.id === 'mirror' || node.id === 'pulsemesh') {
-        return { ...node, status: 'healthy', lastPulse: Date.now() };
-      }
-      return node;
-    }));
-    
-    // Step 2: PulseMesh → Core (500ms delay)
-    setTimeout(() => {
-      setActivePulses(prev => [...prev, { from: 'pulsemesh', to: 'core', progress: 0 }]);
-      setConnections(prev => prev.map(conn => {
-        if (conn.from === 'pulsemesh' && conn.to === 'core') {
-          return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
-        }
-        return conn;
-      }));
-      setNodes(prev => prev.map(node => {
-        if (node.id === 'core') {
-          return { ...node, status: 'healthy', lastPulse: Date.now() };
-        }
-        return node;
-      }));
-    }, 500);
-    
-    // Step 3: Core → SAGE, Kronos, Shadow (1000ms delay)
-    setTimeout(() => {
-      setActivePulses(prev => [
-        ...prev,
-        { from: 'core', to: 'sage', progress: 0 },
-        { from: 'core', to: 'kronos', progress: 0 },
-        { from: 'core', to: 'shadow', progress: 0 }
-      ]);
-      setConnections(prev => prev.map(conn => {
-        if (conn.from === 'core' && ['sage', 'kronos', 'shadow'].includes(conn.to)) {
-          return { ...conn, active: true, pulseCount: conn.pulseCount + 1 };
-        }
-        return conn;
-      }));
-      setNodes(prev => prev.map(node => {
-        if (['sage', 'kronos', 'shadow'].includes(node.id)) {
-          return { ...node, status: 'healthy', lastPulse: Date.now() };
-        }
-        return node;
-      }));
-    }, 1000);
+    // Animation will be triggered automatically by Pulse listener above
+    // No need for manual animation - it will react to real Pulse events!
   };
 
   return (
