@@ -1,0 +1,92 @@
+{
+  "test_date": "2025-11-01T02:18:30.085431",
+  "trials": [
+    {
+      "trial_id": 1,
+      "converged": true,
+      "convergence_iteration": 8,
+      "final_similarity": 0.9995647072792053,
+      "final_trust": 0.0,
+      "final_drift": 12.556902885437012
+    },
+    {
+      "trial_id": 2,
+      "converged": true,
+      "convergence_iteration": 7,
+      "final_similarity": 0.999457836151123,
+      "final_trust": 0.0,
+      "final_drift": 11.19819450378418
+    },
+    {
+      "trial_id": 3,
+      "converged": true,
+      "convergence_iteration": 9,
+      "final_similarity": 0.9998458623886108,
+      "final_trust": 0.0,
+      "final_drift": 14.795281410217285
+    },
+    {
+      "trial_id": 4,
+      "converged": true,
+      "convergence_iteration": 8,
+      "final_similarity": 0.9998867511749268,
+      "final_trust": 0.0,
+      "final_drift": 11.745051383972168
+    },
+    {
+      "trial_id": 5,
+      "converged": true,
+      "convergence_iteration": 9,
+      "final_similarity": 0.999805212020874,
+      "final_trust": 0.0,
+      "final_drift": 13.779566764831543
+    },
+    {
+      "trial_id": 6,
+      "converged": true,
+      "convergence_iteration": 9,
+      "final_similarity": 0.9996468424797058,
+      "final_trust": 0.0,
+      "final_drift": 13.778486251831055
+    },
+    {
+      "trial_id": 7,
+      "converged": true,
+      "convergence_iteration": 7,
+      "final_similarity": 0.9994139671325684,
+      "final_trust": 0.0,
+      "final_drift": 10.53295612335205
+    },
+    {
+      "trial_id": 8,
+      "converged": true,
+      "convergence_iteration": 9,
+      "final_similarity": 0.9998494386672974,
+      "final_trust": 0.0,
+      "final_drift": 14.842172622680664
+    },
+    {
+      "trial_id": 9,
+      "converged": true,
+      "convergence_iteration": 8,
+      "final_similarity": 0.9997473955154419,
+      "final_trust": 0.0,
+      "final_drift": 12.013493537902832
+    },
+    {
+      "trial_id": 10,
+      "converged": true,
+      "convergence_iteration": 8,
+      "final_similarity": 0.9998692870140076,
+      "final_trust": 0.0,
+      "final_drift": 12.89786434173584
+    }
+  ],
+  "summary": {
+    "convergence_rate": 1.0,
+    "mean_convergence_iteration": 8.2,
+    "mean_final_similarity": 0.9997087299823761,
+    "mean_final_trust": 0.0,
+    "mean_final_drift": 12.813996982574462
+  }
+}
