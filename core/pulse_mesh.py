@@ -28,6 +28,7 @@ import yaml
 from datetime import datetime
 import logging
 from pathlib import Path
+from hashlib import sha256
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,6 +60,10 @@ node_connections: Dict[str, WebSocket] = {}
 message_history: List[Dict[str, Any]] = []
 MAX_HISTORY = 1000
 
+# Security: Active sessions and secret key
+ACTIVE_SESSIONS: Dict[str, datetime] = {}
+SECRET_KEY = "mirror:logos:2025"
+
 # Load PulseMesh ontology for routing
 def load_mesh_ontology():
     """Load pulsemesh.yaml for topic routing"""
@@ -70,6 +75,70 @@ def load_mesh_ontology():
 
 mesh_ontology = load_mesh_ontology()
 logger.info(f"[PulseMesh] Loaded ontology with {len(mesh_ontology.get('topics', {}))} topics")
+
+
+# Security Functions
+def verify_signature(message: dict, signature: str) -> bool:
+    """
+    Verify message signature using SHA256 HMAC
+    
+    Args:
+        message: The message payload
+        signature: The signature to verify
+    
+    Returns:
+        True if signature is valid, False otherwise
+    """
+    check = sha256((json.dumps(message, sort_keys=True) + SECRET_KEY).encode()).hexdigest()
+    return check == signature
+
+
+async def secure_connect(websocket: WebSocket) -> str:
+    """
+    Perform secure handshake with client
+    
+    Args:
+        websocket: The WebSocket connection
+    
+    Returns:
+        Success message with client_id, or error string
+    
+    Raises:
+        WebSocketDisconnect: If signature is invalid
+    """
+    await websocket.accept()
+    
+    try:
+        handshake = await websocket.receive_json()
+        message = handshake.get("message")
+        signature = handshake.get("signature")
+        
+        if not message or not signature:
+            await websocket.close(code=4001)
+            return "Missing handshake data"
+        
+        if not verify_signature(message, signature):
+            logger.warning(f"[PulseMesh] Invalid signature from {message.get('source', 'unknown')}")
+            await websocket.close(code=4003)
+            return "Invalid Signature"
+        
+        client_id = message["source"]
+        ACTIVE_SESSIONS[client_id] = datetime.utcnow()
+        logger.info(f"[PulseMesh] Handshake OK from {client_id}")
+        
+        # Send handshake confirmation
+        await websocket.send_json({
+            "type": "handshake_ok",
+            "client_id": client_id,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+        return f"Handshake OK from {client_id}"
+        
+    except Exception as e:
+        logger.error(f"[PulseMesh] Handshake error: {e}")
+        await websocket.close(code=4000)
+        return f"Handshake failed: {e}"
 
 
 @app.get("/")
@@ -142,13 +211,17 @@ async def get_message_history(limit: int = 100):
 @app.websocket("/ws/mesh/{topic}")
 async def mesh_endpoint(websocket: WebSocket, topic: str):
     """
-    WebSocket endpoint for topic-based pub/sub
+    WebSocket endpoint for topic-based pub/sub with security
     
     Args:
         websocket: WebSocket connection
         topic: Topic name to subscribe to
     """
-    await websocket.accept()
+    # Perform secure handshake
+    handshake_result = await secure_connect(websocket)
+    if "Invalid" in handshake_result or "failed" in handshake_result:
+        logger.warning(f"[PulseMesh] Connection rejected: {handshake_result}")
+        return
     
     # Register subscriber
     if topic not in topic_subscribers:
