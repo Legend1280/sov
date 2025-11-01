@@ -25,7 +25,7 @@ from typing import Dict, Set, Any, List
 import asyncio
 import json
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from pathlib import Path
 from hashlib import sha256
@@ -113,23 +113,63 @@ async def secure_connect(websocket: WebSocket) -> str:
         message = handshake.get("message")
         signature = handshake.get("signature")
         
+        # Emit handshake initiated event
+        await pulse_bus.emit("auth.handshake.initiated", {
+            "client_id": message.get("source", "unknown") if message else "unknown",
+            "source": message.get("source", "unknown") if message else "unknown",
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
         if not message or not signature:
+            # Emit handshake failed event
+            await pulse_bus.emit("auth.handshake.failed", {
+                "client_id": None,
+                "reason": "missing_data",
+                "close_code": 4001
+            })
+            
             await websocket.close(code=4001)
             return "Missing handshake data"
         
         if not verify_signature(message, signature):
-            logger.warning(f"[PulseMesh] Invalid signature from {message.get('source', 'unknown')}")
+            client_id = message.get('source', 'unknown')
+            logger.warning(f"[PulseMesh] Invalid signature from {client_id}")
+            
+            # Emit handshake failed event
+            await pulse_bus.emit("auth.handshake.failed", {
+                "client_id": client_id,
+                "reason": "invalid_signature",
+                "close_code": 4003
+            })
+            
             await websocket.close(code=4003)
             return "Invalid Signature"
         
         client_id = message["source"]
+        session_id = f"{client_id}_{int(datetime.utcnow().timestamp())}"
         ACTIVE_SESSIONS[client_id] = datetime.utcnow()
         logger.info(f"[PulseMesh] Handshake OK from {client_id}")
+        
+        # Emit handshake success event
+        await pulse_bus.emit("auth.handshake.success", {
+            "client_id": client_id,
+            "session_id": session_id,
+            "authentication_method": "sha256_signature"
+        })
+        
+        # Emit session created event
+        await pulse_bus.emit("auth.session.created", {
+            "session_id": session_id,
+            "client_id": client_id,
+            "session_type": "websocket_session",
+            "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat()
+        })
         
         # Send handshake confirmation
         await websocket.send_json({
             "type": "handshake_ok",
             "client_id": client_id,
+            "session_id": session_id,
             "timestamp": datetime.utcnow().isoformat()
         })
         

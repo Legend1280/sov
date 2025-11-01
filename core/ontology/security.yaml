@@ -1,0 +1,400 @@
+# Security Ontology v1.0
+# Defines authentication, authorization, and security events for the Sovereignty Stack
+#
+# Author: Brady Simmons
+# Copyright: © 2025 Sovereignty Foundation. All rights reserved.
+
+ontology:
+  name: SecurityOntology
+  version: "1.0.0"
+  description: "Authentication, authorization, and security event definitions"
+  namespace: "sov.security"
+
+# Authentication Methods
+authentication_methods:
+  - id: "sha256_signature"
+    name: "SHA256 Signature"
+    type: "symmetric_key"
+    algorithm: "SHA256-HMAC"
+    status: "active"
+    security_level: "basic"
+    description: "Shared secret signature verification"
+    implementation:
+      server: "pulse_mesh.py::verify_signature()"
+      client: "pulseWebSocket.ts::generateSignature()"
+    limitations:
+      - "Shared secret across all clients"
+      - "No user-level identity"
+      - "Vulnerable to key compromise"
+    upgrade_path: "jwt_token"
+    
+  - id: "jwt_token"
+    name: "JWT Token Authentication"
+    type: "token_based"
+    algorithm: "RS256"
+    status: "planned"
+    security_level: "standard"
+    description: "JSON Web Token with user identity and permissions"
+    features:
+      - "User-level authentication"
+      - "Expiration and refresh"
+      - "Role-based permissions"
+    upgrade_path: "sage_governed"
+    
+  - id: "sage_governed"
+    name: "SAGE-Governed Authentication"
+    type: "policy_based"
+    algorithm: "SAGE-validation"
+    status: "planned"
+    security_level: "sovereign"
+    description: "Ontology-driven authentication with SAGE governance"
+    features:
+      - "Dynamic policy evaluation"
+      - "Context-aware decisions"
+      - "Temporal access control"
+      - "Coherence-based trust"
+
+# Session Types
+session_types:
+  - id: "websocket_session"
+    name: "WebSocket Session"
+    protocol: "ws"
+    transport: "PulseMesh"
+    authentication_required: true
+    authentication_method: "sha256_signature"
+    properties:
+      max_duration: 86400  # 24 hours in seconds
+      idle_timeout: 3600   # 1 hour
+      max_connections_per_client: 5
+      heartbeat_interval: 30  # seconds
+    lifecycle:
+      - "connect"
+      - "handshake"
+      - "authenticated"
+      - "active"
+      - "idle"
+      - "disconnected"
+      - "expired"
+    
+  - id: "pulse_session"
+    name: "Pulse Communication Session"
+    protocol: "pulse"
+    transport: "PulseBridge"
+    authentication_required: true
+    authentication_method: "sage_governed"
+    properties:
+      coherence_threshold: 0.7
+      governance_required: true
+      temporal_tracking: true
+      provenance_logging: true
+    lifecycle:
+      - "initiated"
+      - "validated"
+      - "active"
+      - "completed"
+      - "failed"
+
+# Security Events
+security_events:
+  - id: "auth.handshake.initiated"
+    name: "Handshake Initiated"
+    category: "authentication"
+    severity: "info"
+    description: "Client initiated authentication handshake"
+    payload:
+      - name: "client_id"
+        type: "string"
+        required: true
+      - name: "source"
+        type: "string"
+        required: true
+      - name: "timestamp"
+        type: "datetime"
+        required: true
+    sage_validation: false
+    kronos_index: true
+    shadow_log: true
+    
+  - id: "auth.handshake.success"
+    name: "Handshake Successful"
+    category: "authentication"
+    severity: "info"
+    description: "Client successfully authenticated"
+    payload:
+      - name: "client_id"
+        type: "string"
+        required: true
+      - name: "session_id"
+        type: "string"
+        required: true
+      - name: "authentication_method"
+        type: "string"
+        required: true
+    sage_validation: false
+    kronos_index: true
+    shadow_log: true
+    
+  - id: "auth.handshake.failed"
+    name: "Handshake Failed"
+    category: "authentication"
+    severity: "warning"
+    description: "Authentication handshake failed"
+    payload:
+      - name: "client_id"
+        type: "string"
+        required: false
+      - name: "reason"
+        type: "string"
+        required: true
+        enum:
+          - "invalid_signature"
+          - "missing_data"
+          - "expired_timestamp"
+          - "unknown_client"
+      - name: "close_code"
+        type: "integer"
+        required: true
+    sage_validation: true  # SAGE should analyze failed attempts
+    kronos_index: true
+    shadow_log: true
+    alert_threshold: 5  # Alert after 5 failures from same source
+    
+  - id: "auth.session.created"
+    name: "Session Created"
+    category: "session_management"
+    severity: "info"
+    description: "New session created for authenticated client"
+    payload:
+      - name: "session_id"
+        type: "string"
+        required: true
+      - name: "client_id"
+        type: "string"
+        required: true
+      - name: "session_type"
+        type: "string"
+        required: true
+      - name: "expires_at"
+        type: "datetime"
+        required: true
+    sage_validation: false
+    kronos_index: true
+    shadow_log: true
+    
+  - id: "auth.session.expired"
+    name: "Session Expired"
+    category: "session_management"
+    severity: "info"
+    description: "Session expired due to timeout or max duration"
+    payload:
+      - name: "session_id"
+        type: "string"
+        required: true
+      - name: "reason"
+        type: "string"
+        required: true
+        enum:
+          - "idle_timeout"
+          - "max_duration"
+          - "manual_revocation"
+    sage_validation: false
+    kronos_index: true
+    shadow_log: true
+    
+  - id: "security.violation.detected"
+    name: "Security Violation Detected"
+    category: "security_violation"
+    severity: "critical"
+    description: "Potential security threat detected"
+    payload:
+      - name: "violation_type"
+        type: "string"
+        required: true
+        enum:
+          - "replay_attack"
+          - "signature_tampering"
+          - "rate_limit_exceeded"
+          - "unauthorized_topic"
+          - "malformed_pulse"
+      - name: "source"
+        type: "string"
+        required: true
+      - name: "details"
+        type: "object"
+        required: true
+    sage_validation: true  # SAGE must evaluate and decide action
+    kronos_index: true
+    shadow_log: true
+    immediate_action: true  # Trigger immediate response
+    
+  - id: "security.policy.updated"
+    name: "Security Policy Updated"
+    category: "policy_management"
+    severity: "warning"
+    description: "Security policy or rules changed"
+    payload:
+      - name: "policy_id"
+        type: "string"
+        required: true
+      - name: "changes"
+        type: "array"
+        required: true
+      - name: "updated_by"
+        type: "string"
+        required: true
+    sage_validation: true  # SAGE must approve policy changes
+    kronos_index: true
+    shadow_log: true
+    requires_audit: true
+
+# Access Control Policies
+access_policies:
+  - id: "topic_access_control"
+    name: "Topic-Based Access Control"
+    description: "Control which clients can publish/subscribe to topics"
+    rules:
+      - topic: "mirror.intent"
+        allowed_publishers: ["mirror"]
+        allowed_subscribers: ["core", "sage", "kronos", "shadow"]
+      - topic: "core.reply"
+        allowed_publishers: ["core"]
+        allowed_subscribers: ["mirror"]
+      - topic: "governance.validate"
+        allowed_publishers: ["*"]  # All can request validation
+        allowed_subscribers: ["sage"]
+      - topic: "governance.decision"
+        allowed_publishers: ["sage"]
+        allowed_subscribers: ["*"]  # All can receive decisions
+      - topic: "kronos.index"
+        allowed_publishers: ["*"]
+        allowed_subscribers: ["kronos"]
+      - topic: "shadow.provenance"
+        allowed_publishers: ["*"]
+        allowed_subscribers: ["shadow"]
+    enforcement: "pulsemesh"
+    sage_governed: true
+    
+  - id: "rate_limiting"
+    name: "Pulse Rate Limiting"
+    description: "Prevent Pulse flooding and DoS attacks"
+    limits:
+      - client_type: "mirror"
+        max_pulses_per_second: 10
+        max_pulses_per_minute: 300
+        burst_allowance: 20
+      - client_type: "core"
+        max_pulses_per_second: 50
+        max_pulses_per_minute: 1000
+        burst_allowance: 100
+      - client_type: "sage"
+        max_pulses_per_second: 20
+        max_pulses_per_minute: 500
+        burst_allowance: 50
+    enforcement: "pulsemesh"
+    violation_action: "throttle"  # or "block", "alert"
+    
+  - id: "coherence_threshold"
+    name: "Coherence-Based Access"
+    description: "Require minimum coherence for sensitive operations"
+    thresholds:
+      - operation: "governance.override"
+        min_coherence: 0.95
+      - operation: "policy.update"
+        min_coherence: 0.90
+      - operation: "system.shutdown"
+        min_coherence: 0.99
+    enforcement: "sage"
+    sage_governed: true
+
+# Security Metrics
+metrics:
+  - id: "auth_success_rate"
+    name: "Authentication Success Rate"
+    type: "percentage"
+    calculation: "successful_handshakes / total_handshakes"
+    alert_threshold: 0.8  # Alert if below 80%
+    
+  - id: "session_duration_avg"
+    name: "Average Session Duration"
+    type: "duration"
+    calculation: "sum(session_durations) / session_count"
+    unit: "seconds"
+    
+  - id: "security_violations_count"
+    name: "Security Violations Count"
+    type: "counter"
+    alert_threshold: 10  # Alert if 10+ violations per hour
+    
+  - id: "failed_auth_attempts"
+    name: "Failed Authentication Attempts"
+    type: "counter"
+    alert_threshold: 5  # Alert if 5+ failures from same source
+
+# Upgrade Roadmap
+upgrade_roadmap:
+  phase_1:
+    name: "Basic Security (Current)"
+    features:
+      - "SHA256 signature verification"
+      - "Session tracking"
+      - "Connection rejection"
+    status: "complete"
+    
+  phase_2:
+    name: "Token-Based Security"
+    features:
+      - "JWT token authentication"
+      - "User-level identity"
+      - "Role-based access control"
+      - "Session expiration"
+    status: "planned"
+    target_date: "2025-11-15"
+    
+  phase_3:
+    name: "SAGE-Governed Security"
+    features:
+      - "Ontology-driven policies"
+      - "Dynamic rule evaluation"
+      - "Coherence-based trust"
+      - "Temporal access control"
+    status: "planned"
+    target_date: "2025-12-01"
+    
+  phase_4:
+    name: "Sovereign Security"
+    features:
+      - "End-to-end encryption"
+      - "Zero-knowledge proofs"
+      - "Distributed key management"
+      - "Self-healing security"
+    status: "research"
+    target_date: "2026-Q1"
+
+# Compliance and Standards
+compliance:
+  standards:
+    - name: "WebSocket RFC 6455"
+      url: "https://tools.ietf.org/html/rfc6455"
+      compliance_level: "full"
+    - name: "SHA-256 (FIPS 180-4)"
+      url: "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"
+      compliance_level: "full"
+    - name: "JWT RFC 7519"
+      url: "https://tools.ietf.org/html/rfc7519"
+      compliance_level: "planned"
+  
+  audit_requirements:
+    - "Log all authentication attempts"
+    - "Track session lifecycles"
+    - "Record security violations"
+    - "Monitor access patterns"
+    - "Alert on anomalies"
+
+# Metadata
+metadata:
+  created_at: "2025-10-31"
+  updated_at: "2025-10-31"
+  version: "1.0.0"
+  status: "active"
+  maintainer: "Brady Simmons"
+  license: "Sovereignty Foundation License"
