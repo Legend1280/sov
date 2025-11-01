@@ -1,0 +1,437 @@
+id: "mirror_governance"
+version: "1.0.0"
+type: "Governance Rules"
+category: "SAGE Validation"
+
+metadata:
+  name: "Mirror Browser Governance"
+  description: "Constitutional governance rules for Mirror semantic browser interactions"
+  author: "Sovereignty Foundation"
+  created: "2025-10-31"
+  status: "active"
+  enforces: "Sovereignty Constitution"
+
+# Constitutional principles enforced
+constitutional_principles:
+  - "user_sovereignty"
+  - "data_ownership"
+  - "transparency"
+  - "privacy"
+  - "accountability"
+
+# Governance rules organized by component
+rules:
+  # Mirror-level rules
+  mirror:
+    initialization:
+      rule_id: "mirror.initialization.permitted"
+      description: "Validate Mirror initialization request"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "user_authenticated"
+          condition: "user.authenticated == true"
+          error: "User must be authenticated to initialize Mirror"
+        - name: "constitution_accepted"
+          condition: "user.constitution_accepted == true"
+          error: "User must accept Sovereignty Constitution"
+        - name: "session_valid"
+          condition: "session.valid == true && session.expired == false"
+          error: "User session must be valid"
+      on_success:
+        - emit: "sage.validation.passed"
+          target: ["mirror", "core", "shadow"]
+        - log: "Mirror initialization validated"
+      on_failure:
+        - emit: "sage.validation.failed"
+          target: ["mirror", "core", "shadow"]
+        - block: true
+        - log: "Mirror initialization blocked"
+    
+    render:
+      rule_id: "mirror.render.authorized"
+      description: "Validate object rendering request"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "object_exists"
+          condition: "ontology.object_exists(object_id) == true"
+          error: "Object does not exist in ontology"
+        - name: "user_has_access"
+          condition: "user.has_permission('read', object_id) == true"
+          error: "User does not have permission to view this object"
+        - name: "object_not_restricted"
+          condition: "object.restricted == false || user.role == 'admin'"
+          error: "Object is restricted to administrators"
+        - name: "constitutional_compliance"
+          condition: "object.violates_constitution == false"
+          error: "Object violates constitutional principles"
+      on_success:
+        - emit: "sage.content.validated"
+          target: ["mirror"]
+        - log: "Object rendering authorized"
+      on_failure:
+        - emit: "sage.content.blocked"
+          target: ["mirror"]
+        - block: true
+        - log: "Object rendering blocked"
+    
+    intent:
+      rule_id: "mirror.intent.valid"
+      description: "Validate user intent before processing"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "intent_well_formed"
+          condition: "intent.type != null && intent.data != null"
+          error: "Intent must have type and data"
+        - name: "intent_authorized"
+          condition: "user.has_permission('execute', intent.type) == true"
+          error: "User not authorized for this intent type"
+        - name: "rate_limit_ok"
+          condition: "user.intent_count_last_minute < 60"
+          error: "Rate limit exceeded (max 60 intents/minute)"
+        - name: "no_malicious_content"
+          condition: "security.scan_intent(intent) == 'safe'"
+          error: "Intent contains potentially malicious content"
+      on_success:
+        - emit: "sage.intent.validated"
+          target: ["core"]
+        - increment: "user.intent_count"
+        - log: "User intent validated"
+      on_failure:
+        - emit: "sage.intent.blocked"
+          target: ["mirror", "shadow"]
+        - block: true
+        - log: "User intent blocked"
+    
+    layout:
+      rule_id: "mirror.layout.permitted"
+      description: "Validate layout modification request"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "layout_valid"
+          condition: "layout.is_valid_configuration(new_layout) == true"
+          error: "Invalid layout configuration"
+        - name: "no_excessive_modifications"
+          condition: "user.layout_changes_last_hour < 100"
+          error: "Too many layout changes (max 100/hour)"
+      on_success:
+        - emit: "sage.layout.validated"
+          target: ["mirror"]
+        - log: "Layout modification permitted"
+      on_failure:
+        - emit: "sage.layout.blocked"
+          target: ["mirror"]
+        - block: true
+        - log: "Layout modification blocked"
+    
+    data_access:
+      rule_id: "mirror.data.access.allowed"
+      description: "Validate data access request"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "data_exists"
+          condition: "data.exists(data_id) == true"
+          error: "Requested data does not exist"
+        - name: "user_owns_data"
+          condition: "data.owner == user.id || user.has_permission('read', data_id) == true"
+          error: "User does not own or have permission for this data"
+        - name: "data_not_deleted"
+          condition: "data.deleted == false"
+          error: "Data has been deleted"
+        - name: "privacy_compliant"
+          condition: "data.contains_pii == false || user.privacy_consent == true"
+          error: "Data contains PII and user has not consented"
+      on_success:
+        - emit: "sage.data.access.granted"
+          target: ["mirror", "core"]
+        - log: "Data access granted"
+      on_failure:
+        - emit: "sage.data.access.denied"
+          target: ["mirror", "shadow"]
+        - block: true
+        - log: "Data access denied"
+  
+  # Viewport-specific rules
+  viewport:
+    content:
+      rule_id: "viewport.content.authorized"
+      description: "Validate viewport content loading"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "content_type_supported"
+          condition: "viewport.supports_content_type(content_type) == true"
+          error: "Content type not supported by viewport"
+        - name: "content_source_trusted"
+          condition: "security.is_trusted_source(content_source) == true"
+          error: "Content source is not trusted"
+        - name: "user_has_access"
+          condition: "user.has_permission('view', content_id) == true"
+          error: "User does not have permission to view this content"
+        - name: "content_size_ok"
+          condition: "content.size_mb <= 10"
+          error: "Content exceeds maximum size (10MB)"
+      on_success:
+        - emit: "sage.content.validated"
+          target: ["viewport"]
+        - log: "Viewport content authorized"
+      on_failure:
+        - emit: "sage.content.blocked"
+          target: ["viewport"]
+        - block: true
+        - log: "Viewport content blocked"
+    
+    iframe:
+      rule_id: "viewport.iframe.safe"
+      description: "Validate iframe embedding for security"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "url_valid"
+          condition: "url.is_valid(iframe_url) == true"
+          error: "Invalid URL format"
+        - name: "url_whitelisted"
+          condition: "security.url_in_whitelist(iframe_url) == true || user.role == 'admin'"
+          error: "URL not in whitelist (admin override available)"
+        - name: "no_xss_risk"
+          condition: "security.scan_url_for_xss(iframe_url) == 'safe'"
+          error: "URL poses XSS risk"
+        - name: "https_only"
+          condition: "url.protocol == 'https'"
+          error: "Only HTTPS URLs are permitted"
+      on_success:
+        - emit: "sage.iframe.validated"
+          target: ["viewport"]
+        - log: "Iframe URL validated"
+      on_failure:
+        - emit: "sage.iframe.blocked"
+          target: ["viewport", "shadow"]
+        - block: true
+        - log: "Iframe URL blocked"
+    
+    interaction:
+      rule_id: "viewport.interaction.permitted"
+      description: "Validate user interaction with viewport content"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "interaction_type_valid"
+          condition: "viewport.supports_interaction(interaction_type) == true"
+          error: "Interaction type not supported"
+        - name: "user_authorized"
+          condition: "user.has_permission('interact', viewport_id) == true"
+          error: "User not authorized to interact with this viewport"
+        - name: "rate_limit_ok"
+          condition: "user.interaction_count_last_second < 10"
+          error: "Interaction rate limit exceeded (max 10/second)"
+      on_success:
+        - emit: "sage.interaction.validated"
+          target: ["viewport", "core"]
+        - increment: "user.interaction_count"
+        - log: "Viewport interaction permitted"
+      on_failure:
+        - emit: "sage.interaction.blocked"
+          target: ["viewport"]
+        - block: true
+        - log: "Viewport interaction blocked"
+  
+  # Navigator-specific rules
+  navigator:
+    navigation:
+      rule_id: "navigator.navigation.permitted"
+      description: "Validate navigation request"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "target_exists"
+          condition: "navigation.target_exists(target) == true"
+          error: "Navigation target does not exist"
+        - name: "user_has_access"
+          condition: "user.has_permission('navigate', target) == true"
+          error: "User does not have permission to navigate to this target"
+        - name: "target_not_restricted"
+          condition: "target.restricted == false || user.role == 'admin'"
+          error: "Target is restricted to administrators"
+      on_success:
+        - emit: "sage.navigation.validated"
+          target: ["navigator", "mirror"]
+        - log: "Navigation permitted"
+      on_failure:
+        - emit: "sage.navigation.blocked"
+          target: ["navigator"]
+        - block: true
+        - log: "Navigation blocked"
+    
+    ontology_access:
+      rule_id: "navigator.ontology.access.allowed"
+      description: "Validate ontology browsing request"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "user_authenticated"
+          condition: "user.authenticated == true"
+          error: "User must be authenticated to browse ontology"
+        - name: "ontology_category_accessible"
+          condition: "user.has_permission('browse', category) == true"
+          error: "User does not have permission to browse this category"
+      on_success:
+        - emit: "sage.ontology.access.granted"
+          target: ["navigator", "core"]
+        - log: "Ontology access granted"
+      on_failure:
+        - emit: "sage.ontology.access.denied"
+          target: ["navigator"]
+        - block: true
+        - log: "Ontology access denied"
+  
+  # SurfaceViewer-specific rules
+  surface:
+    object_access:
+      rule_id: "surface.object.access.allowed"
+      description: "Validate object detail access"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "object_exists"
+          condition: "ontology.object_exists(object_id) == true"
+          error: "Object does not exist"
+        - name: "user_has_access"
+          condition: "user.has_permission('read', object_id) == true"
+          error: "User does not have permission to view object details"
+        - name: "object_not_private"
+          condition: "object.private == false || object.owner == user.id"
+          error: "Object is private and user is not owner"
+      on_success:
+        - emit: "sage.object.access.granted"
+          target: ["surface", "core"]
+        - log: "Object access granted"
+      on_failure:
+        - emit: "sage.object.access.denied"
+          target: ["surface"]
+        - block: true
+        - log: "Object access denied"
+    
+    provenance_access:
+      rule_id: "surface.provenance.access.allowed"
+      description: "Validate provenance data access"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "object_exists"
+          condition: "ontology.object_exists(object_id) == true"
+          error: "Object does not exist"
+        - name: "user_has_provenance_permission"
+          condition: "user.has_permission('provenance', object_id) == true"
+          error: "User does not have permission to view provenance"
+        - name: "provenance_available"
+          condition: "kronos.has_provenance(object_id) == true"
+          error: "No provenance data available for this object"
+      on_success:
+        - emit: "sage.provenance.access.granted"
+          target: ["surface", "kronos"]
+        - log: "Provenance access granted"
+      on_failure:
+        - emit: "sage.provenance.access.denied"
+          target: ["surface"]
+        - block: true
+        - log: "Provenance access denied"
+    
+    document_access:
+      rule_id: "surface.document.access.allowed"
+      description: "Validate document content access"
+      validation_type: "synchronous"
+      required: true
+      checks:
+        - name: "document_exists"
+          condition: "documents.exists(document_id) == true"
+          error: "Document does not exist"
+        - name: "user_has_access"
+          condition: "user.has_permission('read', document_id) == true"
+          error: "User does not have permission to view this document"
+        - name: "document_not_confidential"
+          condition: "document.confidential == false || user.clearance_level >= document.required_clearance"
+          error: "Document is confidential and user lacks clearance"
+      on_success:
+        - emit: "sage.document.access.granted"
+          target: ["surface", "core"]
+        - log: "Document access granted"
+      on_failure:
+        - emit: "sage.document.access.denied"
+          target: ["surface"]
+        - block: true
+        - log: "Document access denied"
+
+# Rate limiting rules
+rate_limits:
+  user_intents:
+    window: "1 minute"
+    max_count: 60
+    action_on_exceed: "block_and_notify"
+    
+  viewport_interactions:
+    window: "1 second"
+    max_count: 10
+    action_on_exceed: "block_and_notify"
+    
+  layout_modifications:
+    window: "1 hour"
+    max_count: 100
+    action_on_exceed: "block_and_notify"
+    
+  navigation_requests:
+    window: "1 second"
+    max_count: 5
+    action_on_exceed: "block_and_notify"
+
+# Security policies
+security:
+  xss_protection: true
+  csrf_protection: true
+  content_security_policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+  iframe_sandbox: true
+  https_only: true
+  
+# Audit logging
+audit:
+  log_all_validations: true
+  log_all_blocks: true
+  log_all_violations: true
+  log_destination: "shadow"
+  log_retention_days: 365
+
+# Violation handling
+violations:
+  minor:
+    threshold: 3
+    action: "warn_user"
+    reset_window: "1 hour"
+    
+  moderate:
+    threshold: 5
+    action: "temporary_restriction"
+    duration: "1 hour"
+    reset_window: "24 hours"
+    
+  severe:
+    threshold: 10
+    action: "account_suspension"
+    duration: "24 hours"
+    notify_admin: true
+
+# Emergency controls
+emergency:
+  kill_switch:
+    enabled: true
+    trigger: "admin_command"
+    action: "block_all_mirror_operations"
+    
+  circuit_breaker:
+    enabled: true
+    error_threshold: 10
+    window: "1 minute"
+    action: "temporary_disable"
+    recovery_time: "5 minutes"

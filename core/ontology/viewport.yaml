@@ -1,0 +1,274 @@
+id: "viewport"
+version: "1.0.0"
+type: "Interface Component"
+category: "Mirror Browser Element"
+
+metadata:
+  name: "Viewport"
+  description: "Universal content container for rendering semantic objects, visualizations, and embedded content"
+  author: "Sovereignty Foundation"
+  created: "2025-10-31"
+  status: "active"
+  parent: "mirror"
+
+definition:
+  purpose: "Flexible container that can render any type of content: ontological objects, D3 visualizations, Babylon.js scenes, iframes, or API data"
+  role: "Content display and interaction surface within Mirror browser"
+  capabilities:
+    - "Render ontological objects via ObjectRenderer"
+    - "Display D3.js data visualizations"
+    - "Embed Babylon.js 3D scenes"
+    - "Load iframe content with sandboxing"
+    - "Stream API data with real-time updates"
+    - "Support multiple content types simultaneously"
+
+# Viewport types and their renderers
+viewport_types:
+  ontology:
+    description: "Renders ontological objects from Core"
+    renderer: "ObjectRenderer"
+    content_source: "core.ontology"
+    validation_required: true
+    
+  visualization:
+    description: "Renders D3.js data visualizations"
+    renderer: "D3Renderer"
+    content_source: "api.data"
+    validation_required: true
+    
+  scene3d:
+    description: "Renders Babylon.js 3D scenes"
+    renderer: "BabylonRenderer"
+    content_source: "api.scene"
+    validation_required: true
+    
+  iframe:
+    description: "Embeds external content via iframe"
+    renderer: "IframeRenderer"
+    content_source: "external.url"
+    validation_required: true
+    sandbox_attributes: ["allow-scripts", "allow-same-origin"]
+    
+  stream:
+    description: "Displays streaming API data"
+    renderer: "StreamRenderer"
+    content_source: "api.stream"
+    validation_required: true
+    
+  empty:
+    description: "Empty viewport with animated placeholder"
+    renderer: "EmptyPlaceholder"
+    content_source: null
+    validation_required: false
+
+# UI binding
+ui_binding:
+  component_path: "apps/mirror/app/components/Viewport.tsx"
+  renderer: "ObjectRenderer"
+  props_schema:
+    viewport_id:
+      type: "string"
+      required: true
+    viewport_type:
+      type: "string"
+      enum: ["ontology", "visualization", "scene3d", "iframe", "stream", "empty"]
+      default: "empty"
+    content:
+      type: "object"
+      required: false
+    theme:
+      type: "string"
+      enum: ["mirror", "light", "dark"]
+      default: "mirror"
+    focused:
+      type: "boolean"
+      default: false
+
+# State representation
+state:
+  viewport_id: "unique identifier"
+  viewport_type: "current content type"
+  content_loaded: "boolean indicator"
+  content_source: "source identifier or URL"
+  render_time_ms: "time to render content"
+  interaction_count: "number of user interactions"
+  focused: "boolean focus state"
+  error_state: "error information if failed"
+
+# Pulse events
+events:
+  viewport.initialized:
+    description: "Viewport has been initialized"
+    payload:
+      viewport_id: "string"
+      viewport_type: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos"]
+    
+  viewport.content.loading:
+    description: "Viewport is loading content"
+    payload:
+      viewport_id: "string"
+      content_type: "string"
+      content_source: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core"]
+    
+  viewport.content.loaded:
+    description: "Viewport has loaded content successfully"
+    payload:
+      viewport_id: "string"
+      content_type: "string"
+      render_time_ms: "number"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos", "shadow"]
+    
+  viewport.content.failed:
+    description: "Viewport failed to load content"
+    payload:
+      viewport_id: "string"
+      content_type: "string"
+      error_message: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "sage", "shadow"]
+    
+  viewport.interaction:
+    description: "User has interacted with viewport content"
+    payload:
+      viewport_id: "string"
+      interaction_type: "string"
+      interaction_data: "object"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "sage"]
+    
+  viewport.focused:
+    description: "Viewport has received focus"
+    payload:
+      viewport_id: "string"
+      previous_focus: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core"]
+    
+  viewport.resized:
+    description: "Viewport has been resized"
+    payload:
+      viewport_id: "string"
+      previous_dimensions: "object"
+      new_dimensions: "object"
+      timestamp: "datetime"
+    targets: ["mirror", "kronos"]
+
+# Subscriptions
+subscriptions:
+  core.content.ready:
+    description: "Core has content ready for viewport"
+    handler: "loadContent"
+    
+  sage.content.validated:
+    description: "SAGE has validated content for display"
+    handler: "renderValidatedContent"
+    
+  sage.content.blocked:
+    description: "SAGE has blocked content"
+    handler: "displayBlockedMessage"
+    
+  mirror.theme.changed:
+    description: "Mirror theme has changed"
+    handler: "updateTheme"
+
+# Governance
+governance:
+  sage_validation:
+    required: true
+    validation_points:
+      - "Before loading any content"
+      - "Before rendering iframe content"
+      - "Before executing user interactions"
+    validation_rules:
+      - "viewport.content.authorized"
+      - "viewport.iframe.safe"
+      - "viewport.interaction.permitted"
+  
+  kronos_indexing:
+    enabled: true
+    indexed_events:
+      - "viewport.content.loaded"
+      - "viewport.interaction"
+      - "viewport.focused"
+  
+  shadow_logging:
+    enabled: true
+    log_level: "info"
+    logged_events:
+      - "viewport.content.loaded"
+      - "viewport.content.failed"
+      - "viewport.interaction"
+
+# Content type handlers
+content_handlers:
+  ontology:
+    loader: "loadOntologyObject"
+    renderer: "renderWithObjectRenderer"
+    validator: "sage.validate.ontology"
+    
+  visualization:
+    loader: "loadVisualizationData"
+    renderer: "renderWithD3"
+    validator: "sage.validate.data"
+    
+  scene3d:
+    loader: "loadSceneData"
+    renderer: "renderWithBabylon"
+    validator: "sage.validate.scene"
+    
+  iframe:
+    loader: "validateIframeURL"
+    renderer: "renderIframe"
+    validator: "sage.validate.iframe"
+    security:
+      sandbox: true
+      allowed_origins: []
+      csp: "default-src 'self'"
+    
+  stream:
+    loader: "connectToStream"
+    renderer: "renderStreamData"
+    validator: "sage.validate.stream"
+
+# Lifecycle
+lifecycle:
+  on_mount:
+    - emit: "viewport.initialized"
+    - validate: "viewport.initialization.permitted"
+    - subscribe: ["core.content.*", "sage.content.*", "mirror.theme.*"]
+  
+  on_content_change:
+    - emit: "viewport.content.loading"
+    - validate: "viewport.content.authorized"
+    - load: "content_via_handler"
+    - emit: "viewport.content.loaded" # or viewport.content.failed
+  
+  on_unmount:
+    - cleanup: "unsubscribe_all"
+    - cleanup: "dispose_renderers"
+
+# Relationships
+relationships:
+  parent: "Mirror"
+  siblings: ["Navigator", "SurfaceViewer", "Header"]
+  contains: ["content_renderers"]
+  governed_by: ["SAGE"]
+
+# Performance
+performance:
+  target_load_time_ms: 200
+  max_content_size_mb: 10
+  iframe_timeout_ms: 5000
+  stream_buffer_size: 1000
+
+# Security
+security:
+  iframe_sandbox: true
+  csp_enabled: true
+  xss_protection: true
+  content_validation: true

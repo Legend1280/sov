@@ -1,0 +1,447 @@
+id: "mirror_channels"
+version: "1.0.0"
+type: "Pulse Channels"
+category: "PulseMesh Communication"
+
+metadata:
+  name: "Mirror Browser Pulse Channels"
+  description: "Pulse channel definitions for Mirror semantic browser communication"
+  author: "Sovereignty Foundation"
+  created: "2025-10-31"
+  status: "active"
+
+# Pulse channels organized by component and function
+channels:
+  # Mirror-level channels
+  mirror:
+    lifecycle:
+      channel: "mirror.lifecycle"
+      description: "Mirror browser lifecycle events"
+      direction: "bidirectional"
+      participants: ["mirror", "core", "sage", "kronos", "shadow"]
+      events:
+        - "mirror.initialized"
+        - "mirror.ready"
+        - "mirror.shutdown"
+      qos: "at_least_once"
+      retention: "7 days"
+      
+    state:
+      channel: "mirror.state"
+      description: "Mirror state observation and convergence"
+      direction: "mirror_to_core"
+      participants: ["mirror", "core", "sage", "shadow"]
+      events:
+        - "mirror.state.captured"
+        - "mirror.convergence.detected"
+      qos: "at_least_once"
+      retention: "30 days"
+      
+    intent:
+      channel: "mirror.intent"
+      description: "User intents from Mirror to Core"
+      direction: "mirror_to_core"
+      participants: ["mirror", "core", "sage"]
+      events:
+        - "mirror.intent"
+      qos: "exactly_once"
+      retention: "90 days"
+      validation_required: true
+      validator: "sage"
+      
+    update:
+      channel: "mirror.update"
+      description: "Mirror UI updates and refreshes"
+      direction: "core_to_mirror"
+      participants: ["core", "mirror"]
+      events:
+        - "mirror.update.requested"
+        - "mirror.refresh.required"
+      qos: "at_most_once"
+      retention: "1 day"
+      
+    theme:
+      channel: "mirror.theme"
+      description: "Theme changes and styling updates"
+      direction: "bidirectional"
+      participants: ["mirror", "core", "kronos"]
+      events:
+        - "mirror.theme.changed"
+        - "mirror.theme.applied"
+      qos: "at_most_once"
+      retention: "7 days"
+  
+  # Viewport channels
+  viewport:
+    lifecycle:
+      channel: "viewport.lifecycle"
+      description: "Viewport lifecycle events"
+      direction: "bidirectional"
+      participants: ["viewport", "mirror", "core", "kronos"]
+      events:
+        - "viewport.initialized"
+        - "viewport.mounted"
+        - "viewport.unmounted"
+      qos: "at_least_once"
+      retention: "7 days"
+      
+    content:
+      channel: "viewport.content"
+      description: "Viewport content loading and rendering"
+      direction: "bidirectional"
+      participants: ["viewport", "core", "sage"]
+      events:
+        - "viewport.content.loading"
+        - "viewport.content.loaded"
+        - "viewport.content.failed"
+      qos: "at_least_once"
+      retention: "7 days"
+      validation_required: true
+      validator: "sage"
+      
+    interaction:
+      channel: "viewport.interaction"
+      description: "User interactions within viewports"
+      direction: "viewport_to_core"
+      participants: ["viewport", "core", "sage", "kronos"]
+      events:
+        - "viewport.interaction"
+        - "viewport.focused"
+        - "viewport.resized"
+      qos: "at_least_once"
+      retention: "30 days"
+      validation_required: true
+      validator: "sage"
+  
+  # Navigator channels
+  navigator:
+    lifecycle:
+      channel: "navigator.lifecycle"
+      description: "Navigator lifecycle events"
+      direction: "bidirectional"
+      participants: ["navigator", "mirror", "core", "kronos"]
+      events:
+        - "navigator.initialized"
+        - "navigator.ready"
+      qos: "at_least_once"
+      retention: "7 days"
+      
+    navigation:
+      channel: "navigator.navigation"
+      description: "Navigation events and section changes"
+      direction: "bidirectional"
+      participants: ["navigator", "mirror", "core", "sage", "kronos"]
+      events:
+        - "navigator.section.selected"
+        - "navigator.item.selected"
+        - "navigator.theme.changed"
+      qos: "at_least_once"
+      retention: "30 days"
+      validation_required: true
+      validator: "sage"
+      
+    favorites:
+      channel: "navigator.favorites"
+      description: "Favorite items management"
+      direction: "bidirectional"
+      participants: ["navigator", "core", "shadow"]
+      events:
+        - "navigator.favorite.added"
+        - "navigator.favorite.removed"
+      qos: "exactly_once"
+      retention: "365 days"
+  
+  # SurfaceViewer channels
+  surface:
+    lifecycle:
+      channel: "surface.lifecycle"
+      description: "SurfaceViewer lifecycle events"
+      direction: "bidirectional"
+      participants: ["surface", "mirror", "core", "kronos"]
+      events:
+        - "surface.initialized"
+        - "surface.ready"
+      qos: "at_least_once"
+      retention: "7 days"
+      
+    content:
+      channel: "surface.content"
+      description: "Surface content loading and display"
+      direction: "bidirectional"
+      participants: ["surface", "core", "sage", "kronos"]
+      events:
+        - "surface.content.loading"
+        - "surface.content.loaded"
+        - "surface.content.failed"
+      qos: "at_least_once"
+      retention: "7 days"
+      validation_required: true
+      validator: "sage"
+      
+    tabs:
+      channel: "surface.tabs"
+      description: "Tab switching and management"
+      direction: "bidirectional"
+      participants: ["surface", "mirror", "kronos"]
+      events:
+        - "surface.tab.changed"
+        - "surface.tab.loaded"
+      qos: "at_most_once"
+      retention: "7 days"
+      
+    object:
+      channel: "surface.object"
+      description: "Object selection and detail viewing"
+      direction: "bidirectional"
+      participants: ["surface", "core", "sage", "kronos"]
+      events:
+        - "surface.object.selected"
+        - "surface.object.details.loaded"
+      qos: "at_least_once"
+      retention: "30 days"
+      validation_required: true
+      validator: "sage"
+      
+    provenance:
+      channel: "surface.provenance"
+      description: "Provenance data requests and display"
+      direction: "bidirectional"
+      participants: ["surface", "kronos", "sage"]
+      events:
+        - "surface.provenance.requested"
+        - "surface.provenance.loaded"
+      qos: "at_least_once"
+      retention: "90 days"
+      validation_required: true
+      validator: "sage"
+  
+  # Object rendering channels
+  object:
+    lifecycle:
+      channel: "object.lifecycle"
+      description: "Ontological object lifecycle in Mirror"
+      direction: "bidirectional"
+      participants: ["mirror", "core", "sage", "kronos", "shadow"]
+      events:
+        - "mirror.object.loading"
+        - "mirror.object.rendered"
+        - "mirror.object.unmounted"
+      qos: "at_least_once"
+      retention: "30 days"
+      validation_required: true
+      validator: "sage"
+  
+  # Layout channels
+  layout:
+    modifications:
+      channel: "layout.modifications"
+      description: "Layout changes and resizing"
+      direction: "bidirectional"
+      participants: ["mirror", "core", "kronos"]
+      events:
+        - "mirror.layout.modified"
+        - "mirror.layout.reset"
+      qos: "at_most_once"
+      retention: "7 days"
+  
+  # Governance channels
+  governance:
+    validation:
+      channel: "governance.validation"
+      description: "SAGE validation results"
+      direction: "sage_to_mirror"
+      participants: ["sage", "mirror", "viewport", "navigator", "surface"]
+      events:
+        - "sage.validation.passed"
+        - "sage.validation.failed"
+        - "sage.content.validated"
+        - "sage.content.blocked"
+        - "sage.intent.validated"
+        - "sage.intent.blocked"
+      qos: "exactly_once"
+      retention: "90 days"
+      
+    violations:
+      channel: "governance.violations"
+      description: "Constitutional violations"
+      direction: "sage_to_mirror"
+      participants: ["sage", "mirror", "shadow"]
+      events:
+        - "sage.violation.detected"
+        - "sage.violation.logged"
+      qos: "exactly_once"
+      retention: "365 days"
+  
+  # Core response channels
+  core:
+    reasoning:
+      channel: "core.reasoning"
+      description: "Core reasoning responses"
+      direction: "core_to_mirror"
+      participants: ["core", "mirror", "viewport"]
+      events:
+        - "core.reasoning.complete"
+        - "core.reasoning.failed"
+      qos: "at_least_once"
+      retention: "30 days"
+      
+    ontology:
+      channel: "core.ontology"
+      description: "Ontology updates and changes"
+      direction: "core_to_mirror"
+      participants: ["core", "mirror", "navigator", "surface"]
+      events:
+        - "core.ontology.updated"
+        - "core.ontology.created"
+        - "core.ontology.deleted"
+      qos: "at_least_once"
+      retention: "90 days"
+      
+    content:
+      channel: "core.content"
+      description: "Content delivery from Core"
+      direction: "core_to_mirror"
+      participants: ["core", "viewport", "surface"]
+      events:
+        - "core.content.ready"
+        - "core.object.details"
+      qos: "at_least_once"
+      retention: "7 days"
+  
+  # Kronos channels
+  kronos:
+    provenance:
+      channel: "kronos.provenance"
+      description: "Provenance data from Kronos"
+      direction: "kronos_to_mirror"
+      participants: ["kronos", "surface"]
+      events:
+        - "kronos.provenance.available"
+        - "kronos.provenance.ready"
+      qos: "at_least_once"
+      retention: "90 days"
+  
+  # PulseMesh status channels
+  pulsemesh:
+    connection:
+      channel: "pulsemesh.connection"
+      description: "PulseMesh connection status"
+      direction: "pulsemesh_to_mirror"
+      participants: ["pulsemesh", "mirror"]
+      events:
+        - "pulsemesh.connection.status"
+        - "pulsemesh.connection.established"
+        - "pulsemesh.connection.lost"
+      qos: "at_most_once"
+      retention: "1 day"
+
+# Channel routing rules
+routing:
+  mirror_to_core:
+    channels: ["mirror.intent", "mirror.state"]
+    route: "direct"
+    priority: "high"
+    
+  core_to_mirror:
+    channels: ["core.reasoning", "core.ontology", "core.content"]
+    route: "direct"
+    priority: "high"
+    
+  sage_validation:
+    channels: ["governance.validation", "governance.violations"]
+    route: "direct"
+    priority: "critical"
+    
+  kronos_provenance:
+    channels: ["kronos.provenance"]
+    route: "direct"
+    priority: "medium"
+    
+  lifecycle_events:
+    channels: ["mirror.lifecycle", "viewport.lifecycle", "navigator.lifecycle", "surface.lifecycle"]
+    route: "broadcast"
+    priority: "medium"
+
+# Quality of Service (QoS) definitions
+qos_levels:
+  at_most_once:
+    description: "Fire and forget - no delivery guarantee"
+    delivery_guarantee: false
+    ordering_guarantee: false
+    use_case: "Non-critical updates like theme changes"
+    
+  at_least_once:
+    description: "Guaranteed delivery, possible duplicates"
+    delivery_guarantee: true
+    ordering_guarantee: false
+    use_case: "Important events that must be delivered"
+    
+  exactly_once:
+    description: "Guaranteed delivery exactly once, ordered"
+    delivery_guarantee: true
+    ordering_guarantee: true
+    deduplication: true
+    use_case: "Critical events like intents and governance decisions"
+
+# Message format
+message_format:
+  envelope:
+    channel: "string"
+    event: "string"
+    timestamp: "datetime (ISO 8601)"
+    source: "string (node identifier)"
+    targets: "array of strings"
+    message_id: "string (UUID)"
+    correlation_id: "string (UUID, optional)"
+    
+  payload:
+    type: "object"
+    schema: "varies by event"
+    
+  metadata:
+    qos: "string"
+    ttl: "number (seconds)"
+    priority: "string"
+    validation_required: "boolean"
+    validator: "string (optional)"
+
+# Error handling
+error_handling:
+  delivery_failure:
+    retry_count: 3
+    retry_backoff: "exponential"
+    retry_delay_ms: [100, 500, 2000]
+    dead_letter_queue: true
+    
+  validation_failure:
+    action: "block"
+    notify: ["mirror", "shadow"]
+    log: true
+    
+  timeout:
+    default_timeout_ms: 5000
+    action_on_timeout: "log_and_continue"
+
+# Monitoring
+monitoring:
+  metrics:
+    - "message_count_per_channel"
+    - "message_latency_per_channel"
+    - "validation_success_rate"
+    - "delivery_failure_rate"
+    - "channel_throughput"
+    
+  alerts:
+    high_latency:
+      threshold_ms: 1000
+      action: "notify_admin"
+      
+    high_failure_rate:
+      threshold_percent: 10
+      window: "5 minutes"
+      action: "circuit_breaker"
+      
+    validation_failures:
+      threshold_count: 10
+      window: "1 minute"
+      action: "rate_limit_user"

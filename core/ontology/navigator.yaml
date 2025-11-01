@@ -1,0 +1,298 @@
+id: "navigator"
+version: "1.0.0"
+type: "Interface Component"
+category: "Mirror Browser Element"
+
+metadata:
+  name: "Navigator"
+  description: "Semantic navigation sidebar for browsing ontological objects, themes, and system sections"
+  author: "Sovereignty Foundation"
+  created: "2025-10-31"
+  status: "active"
+  parent: "mirror"
+
+definition:
+  purpose: "Provide structured navigation through ontological objects, system features, and themes"
+  role: "Primary navigation interface within Mirror browser"
+  capabilities:
+    - "Display hierarchical navigation structure"
+    - "Browse ontological objects by category"
+    - "Switch themes dynamically"
+    - "Navigate to system sections"
+    - "Show active/selected state"
+    - "Support keyboard navigation"
+
+# Navigation structure
+structure:
+  sections:
+    - id: "themes"
+      label: "THEMES"
+      type: "theme_selector"
+      items:
+        - id: "mirror"
+          label: "Mirror"
+          action: "switch_theme"
+          icon: "sparkles"
+        - id: "light"
+          label: "Light"
+          action: "switch_theme"
+          icon: "sun"
+        - id: "dark"
+          label: "Dark"
+          action: "switch_theme"
+          icon: "moon"
+    
+    - id: "ontology"
+      label: "ONTOLOGY"
+      type: "object_browser"
+      items:
+        - id: "browse_all"
+          label: "Browse All Objects"
+          action: "navigate"
+          target: "ontology.browser"
+        - id: "recent"
+          label: "Recently Viewed"
+          action: "navigate"
+          target: "ontology.recent"
+        - id: "favorites"
+          label: "Favorites"
+          action: "navigate"
+          target: "ontology.favorites"
+    
+    - id: "system"
+      label: "SYSTEM"
+      type: "system_navigation"
+      items:
+        - id: "dashboard"
+          label: "Dashboard"
+          action: "navigate"
+          target: "system.dashboard"
+        - id: "provenance"
+          label: "Provenance"
+          action: "navigate"
+          target: "system.provenance"
+        - id: "governance"
+          label: "Governance"
+          action: "navigate"
+          target: "system.governance"
+        - id: "constitution"
+          label: "Constitution"
+          action: "navigate"
+          target: "system.constitution"
+    
+    - id: "tools"
+      label: "TOOLS"
+      type: "tool_navigation"
+      items:
+        - id: "query_builder"
+          label: "Query Builder"
+          action: "navigate"
+          target: "tools.query"
+        - id: "visualizer"
+          label: "Visualizer"
+          action: "navigate"
+          target: "tools.visualizer"
+        - id: "inspector"
+          label: "Inspector"
+          action: "navigate"
+          target: "tools.inspector"
+
+# UI binding
+ui_binding:
+  component_path: "apps/mirror/app/components/Navigator.tsx"
+  renderer: "ObjectRenderer"
+  props_schema:
+    width:
+      type: "number"
+      default: 192
+    collapsed:
+      type: "boolean"
+      default: false
+    active_section:
+      type: "string"
+      required: false
+    active_item:
+      type: "string"
+      required: false
+    theme:
+      type: "string"
+      enum: ["mirror", "light", "dark"]
+      default: "mirror"
+
+# State representation
+state:
+  active_section: "currently active section ID"
+  active_item: "currently active item ID"
+  collapsed: "boolean collapse state"
+  width: "current width in pixels"
+  navigation_history: "array of visited items"
+  favorites: "array of favorited items"
+
+# Pulse events
+events:
+  navigator.initialized:
+    description: "Navigator has been initialized"
+    payload:
+      sections: "array of section IDs"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos"]
+    
+  navigator.section.selected:
+    description: "User has selected a navigation section"
+    payload:
+      section_id: "string"
+      previous_section: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos"]
+    
+  navigator.item.selected:
+    description: "User has selected a navigation item"
+    payload:
+      item_id: "string"
+      section_id: "string"
+      action: "string"
+      target: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "sage"]
+    
+  navigator.theme.changed:
+    description: "User has changed theme via Navigator"
+    payload:
+      previous_theme: "string"
+      new_theme: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos"]
+    
+  navigator.collapsed:
+    description: "Navigator has been collapsed/expanded"
+    payload:
+      collapsed: "boolean"
+      timestamp: "datetime"
+    targets: ["mirror"]
+    
+  navigator.favorite.added:
+    description: "User has added item to favorites"
+    payload:
+      item_id: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "shadow"]
+    
+  navigator.favorite.removed:
+    description: "User has removed item from favorites"
+    payload:
+      item_id: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "shadow"]
+
+# Subscriptions
+subscriptions:
+  mirror.theme.changed:
+    description: "Mirror theme has changed"
+    handler: "updateThemeSelection"
+    
+  core.ontology.updated:
+    description: "Core has updated ontology objects"
+    handler: "refreshOntologySection"
+    
+  mirror.navigation:
+    description: "Navigation event from other components"
+    handler: "syncActiveState"
+
+# Governance
+governance:
+  sage_validation:
+    required: true
+    validation_points:
+      - "Before navigating to restricted sections"
+      - "Before loading ontology objects"
+    validation_rules:
+      - "navigator.navigation.permitted"
+      - "navigator.ontology.access.allowed"
+  
+  kronos_indexing:
+    enabled: true
+    indexed_events:
+      - "navigator.item.selected"
+      - "navigator.theme.changed"
+      - "navigator.favorite.added"
+  
+  shadow_logging:
+    enabled: true
+    log_level: "info"
+    logged_events:
+      - "navigator.item.selected"
+      - "navigator.theme.changed"
+
+# Navigation actions
+actions:
+  switch_theme:
+    description: "Switch Mirror theme"
+    pulse_channel: "navigator.action.theme"
+    validation: "sage.validate.theme_change"
+    handler: "handleThemeSwitch"
+    
+  navigate:
+    description: "Navigate to target section"
+    pulse_channel: "navigator.action.navigate"
+    validation: "sage.validate.navigation"
+    handler: "handleNavigation"
+    
+  toggle_favorite:
+    description: "Add/remove item from favorites"
+    pulse_channel: "navigator.action.favorite"
+    validation: "sage.validate.favorite"
+    handler: "handleFavoriteToggle"
+
+# Keyboard shortcuts
+keyboard_shortcuts:
+  "Ctrl+B": "toggle_collapse"
+  "Ctrl+T": "focus_themes"
+  "Ctrl+O": "focus_ontology"
+  "Ctrl+S": "focus_system"
+  "ArrowUp": "navigate_up"
+  "ArrowDown": "navigate_down"
+  "Enter": "select_item"
+  "Escape": "clear_selection"
+
+# Lifecycle
+lifecycle:
+  on_mount:
+    - emit: "navigator.initialized"
+    - validate: "navigator.initialization.permitted"
+    - subscribe: ["mirror.theme.*", "core.ontology.*", "mirror.navigation"]
+    - load: "navigation_structure"
+    - load: "user_favorites"
+  
+  on_item_click:
+    - emit: "navigator.item.selected"
+    - validate: "navigator.navigation.permitted"
+    - execute: "item_action"
+  
+  on_unmount:
+    - cleanup: "unsubscribe_all"
+    - save: "user_favorites"
+
+# Relationships
+relationships:
+  parent: "Mirror"
+  siblings: ["Viewport", "SurfaceViewer", "Header"]
+  governed_by: ["SAGE"]
+
+# Styling
+styling:
+  width_default: 192
+  width_min: 160
+  width_max: 320
+  section_spacing: 24
+  item_height: 36
+  icon_size: 16
+  font_size: 14
+  hover_transition_ms: 150
+
+# Accessibility
+accessibility:
+  keyboard_navigation: true
+  screen_reader_support: true
+  aria_labels: true
+  focus_indicators: true
+  high_contrast_mode: true

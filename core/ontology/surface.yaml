@@ -1,0 +1,355 @@
+id: "surface"
+version: "1.0.0"
+type: "Interface Component"
+category: "Mirror Browser Element"
+
+metadata:
+  name: "SurfaceViewer"
+  description: "Multi-tab panel for displaying ontology details, documents, and provenance information"
+  author: "Sovereignty Foundation"
+  created: "2025-10-31"
+  status: "active"
+  parent: "mirror"
+
+definition:
+  purpose: "Display detailed information about selected objects across multiple organized tabs"
+  role: "Information display and detail viewer within Mirror browser"
+  capabilities:
+    - "Display ontology object details"
+    - "Show document content with formatting"
+    - "Visualize provenance chains"
+    - "Support tabbed navigation"
+    - "Render markdown and rich text"
+    - "Display relationship graphs"
+
+# Tab structure
+tabs:
+  ontology:
+    id: "ontology"
+    label: "Ontology"
+    icon: "cube"
+    description: "View ontological object details, properties, and relationships"
+    content_types:
+      - "object_properties"
+      - "object_relationships"
+      - "object_metadata"
+      - "object_schema"
+    
+  document:
+    id: "document"
+    label: "Document"
+    icon: "file-text"
+    description: "View document content with rich formatting"
+    content_types:
+      - "markdown"
+      - "rich_text"
+      - "code"
+      - "json"
+      - "yaml"
+    
+  provenance:
+    id: "provenance"
+    label: "Provenance"
+    icon: "git-branch"
+    description: "View object provenance chain and history"
+    content_types:
+      - "provenance_chain"
+      - "event_timeline"
+      - "modification_history"
+      - "governance_log"
+
+# UI binding
+ui_binding:
+  component_path: "apps/mirror/app/components/SurfaceViewer.tsx"
+  renderer: "ObjectRenderer"
+  props_schema:
+    width:
+      type: "number"
+      default: 384
+    active_tab:
+      type: "string"
+      enum: ["ontology", "document", "provenance"]
+      default: "ontology"
+    content:
+      type: "object"
+      required: false
+    theme:
+      type: "string"
+      enum: ["mirror", "light", "dark"]
+      default: "mirror"
+
+# State representation
+state:
+  active_tab: "currently active tab ID"
+  content_loaded: "boolean indicator"
+  content_source: "source object ID or URL"
+  content_type: "type of content being displayed"
+  width: "current width in pixels"
+  scroll_position: "current scroll position"
+  history: "array of viewed objects"
+
+# Pulse events
+events:
+  surface.initialized:
+    description: "SurfaceViewer has been initialized"
+    payload:
+      tabs: "array of tab IDs"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos"]
+    
+  surface.tab.changed:
+    description: "User has switched tabs"
+    payload:
+      previous_tab: "string"
+      new_tab: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos"]
+    
+  surface.content.loading:
+    description: "SurfaceViewer is loading content"
+    payload:
+      tab_id: "string"
+      content_type: "string"
+      content_source: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core"]
+    
+  surface.content.loaded:
+    description: "SurfaceViewer has loaded content"
+    payload:
+      tab_id: "string"
+      content_type: "string"
+      load_time_ms: "number"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos", "shadow"]
+    
+  surface.content.failed:
+    description: "SurfaceViewer failed to load content"
+    payload:
+      tab_id: "string"
+      content_type: "string"
+      error_message: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "sage", "shadow"]
+    
+  surface.object.selected:
+    description: "User has selected an object for viewing"
+    payload:
+      object_id: "string"
+      object_type: "string"
+      source_component: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "sage", "kronos"]
+    
+  surface.provenance.requested:
+    description: "User has requested provenance information"
+    payload:
+      object_id: "string"
+      timestamp: "datetime"
+    targets: ["mirror", "core", "kronos"]
+
+# Subscriptions
+subscriptions:
+  viewport.interaction:
+    description: "Viewport interaction may trigger surface update"
+    handler: "handleViewportInteraction"
+    
+  navigator.item.selected:
+    description: "Navigator selection may load surface content"
+    handler: "handleNavigatorSelection"
+    
+  core.object.details:
+    description: "Core has object details ready"
+    handler: "loadObjectDetails"
+    
+  kronos.provenance.ready:
+    description: "Kronos has provenance data ready"
+    handler: "loadProvenanceData"
+    
+  mirror.theme.changed:
+    description: "Mirror theme has changed"
+    handler: "updateTheme"
+
+# Governance
+governance:
+  sage_validation:
+    required: true
+    validation_points:
+      - "Before loading object details"
+      - "Before displaying provenance"
+      - "Before rendering document content"
+    validation_rules:
+      - "surface.object.access.allowed"
+      - "surface.provenance.access.allowed"
+      - "surface.document.access.allowed"
+  
+  kronos_indexing:
+    enabled: true
+    indexed_events:
+      - "surface.tab.changed"
+      - "surface.object.selected"
+      - "surface.provenance.requested"
+  
+  shadow_logging:
+    enabled: true
+    log_level: "info"
+    logged_events:
+      - "surface.object.selected"
+      - "surface.content.loaded"
+      - "surface.provenance.requested"
+
+# Content renderers
+renderers:
+  ontology:
+    object_properties:
+      component: "ObjectPropertiesRenderer"
+      description: "Display object properties in structured format"
+      
+    object_relationships:
+      component: "RelationshipGraphRenderer"
+      description: "Visualize object relationships as graph"
+      
+    object_metadata:
+      component: "MetadataRenderer"
+      description: "Display object metadata and timestamps"
+      
+    object_schema:
+      component: "SchemaRenderer"
+      description: "Display object schema definition"
+  
+  document:
+    markdown:
+      component: "MarkdownRenderer"
+      description: "Render markdown with syntax highlighting"
+      
+    rich_text:
+      component: "RichTextRenderer"
+      description: "Render formatted rich text"
+      
+    code:
+      component: "CodeRenderer"
+      description: "Render code with syntax highlighting"
+      
+    json:
+      component: "JSONRenderer"
+      description: "Render JSON with collapsible tree"
+      
+    yaml:
+      component: "YAMLRenderer"
+      description: "Render YAML with syntax highlighting"
+  
+  provenance:
+    provenance_chain:
+      component: "ProvenanceChainRenderer"
+      description: "Visualize provenance chain as timeline"
+      
+    event_timeline:
+      component: "EventTimelineRenderer"
+      description: "Display event timeline with details"
+      
+    modification_history:
+      component: "HistoryRenderer"
+      description: "Show modification history with diffs"
+      
+    governance_log:
+      component: "GovernanceLogRenderer"
+      description: "Display governance validation log"
+
+# Tab actions
+actions:
+  switch_tab:
+    description: "Switch to different tab"
+    pulse_channel: "surface.action.tab"
+    validation: "sage.validate.tab_access"
+    handler: "handleTabSwitch"
+    
+  load_object:
+    description: "Load object details"
+    pulse_channel: "surface.action.load"
+    validation: "sage.validate.object_access"
+    handler: "handleObjectLoad"
+    
+  request_provenance:
+    description: "Request provenance information"
+    pulse_channel: "surface.action.provenance"
+    validation: "sage.validate.provenance_access"
+    handler: "handleProvenanceRequest"
+    
+  export_content:
+    description: "Export displayed content"
+    pulse_channel: "surface.action.export"
+    validation: "sage.validate.export"
+    handler: "handleExport"
+
+# Keyboard shortcuts
+keyboard_shortcuts:
+  "Ctrl+1": "switch_to_ontology_tab"
+  "Ctrl+2": "switch_to_document_tab"
+  "Ctrl+3": "switch_to_provenance_tab"
+  "Ctrl+E": "export_content"
+  "Ctrl+F": "search_content"
+  "Escape": "clear_content"
+
+# Lifecycle
+lifecycle:
+  on_mount:
+    - emit: "surface.initialized"
+    - validate: "surface.initialization.permitted"
+    - subscribe: ["viewport.interaction", "navigator.item.selected", "core.object.*", "kronos.provenance.*", "mirror.theme.*"]
+    - set_active_tab: "ontology"
+  
+  on_tab_change:
+    - emit: "surface.tab.changed"
+    - validate: "surface.tab.access.allowed"
+    - load: "tab_content"
+  
+  on_object_select:
+    - emit: "surface.object.selected"
+    - validate: "surface.object.access.allowed"
+    - emit: "surface.content.loading"
+    - load: "object_details"
+    - emit: "surface.content.loaded" # or surface.content.failed
+  
+  on_unmount:
+    - cleanup: "unsubscribe_all"
+    - cleanup: "dispose_renderers"
+
+# Relationships
+relationships:
+  parent: "Mirror"
+  siblings: ["Navigator", "Viewport", "Header"]
+  data_sources: ["Core", "Kronos"]
+  governed_by: ["SAGE"]
+
+# Styling
+styling:
+  width_default: 384
+  width_min: 320
+  width_max: 640
+  tab_height: 48
+  content_padding: 24
+  font_size: 14
+  line_height: 1.6
+  code_font: "monospace"
+
+# Performance
+performance:
+  target_load_time_ms: 150
+  max_content_size_mb: 5
+  lazy_load_images: true
+  virtualize_long_lists: true
+
+# Accessibility
+accessibility:
+  keyboard_navigation: true
+  screen_reader_support: true
+  aria_labels: true
+  focus_indicators: true
+  high_contrast_mode: true
+  
+# Export formats
+export_formats:
+  - "markdown"
+  - "json"
+  - "pdf"
+  - "html"

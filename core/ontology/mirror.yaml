@@ -1,0 +1,414 @@
+id: "mirror"
+version: "1.0.0"
+type: "Interface"
+category: "Sovereignty Stack Node"
+
+metadata:
+  name: "Mirror"
+  description: "The consciousness interface - semantic browser for observing and interacting with the Sovereignty Stack"
+  author: "Sovereignty Foundation"
+  created: "2025-10-31"
+  status: "active"
+
+# Mirror is the interface layer - it reflects system state to users
+# and captures user intent for processing by Core and governance by SAGE
+definition:
+  purpose: "Semantic browser that manifests ontological objects as governed UI components"
+  role: "Interface between human users and the Sovereignty Stack"
+  capabilities:
+    - "Render ontological objects as visual components"
+    - "Capture user intent and emit as Pulses"
+    - "Observe system state through recursive reflection"
+    - "Enforce constitutional constraints at UI level"
+    - "Maintain semantic coherence across interactions"
+
+# Mirror itself is composed of semantic objects
+composition:
+  root: "MirrorBrowser"
+  children:
+    - "Header"
+    - "Navigator"
+    - "Viewport1"
+    - "Viewport2"
+    - "SurfaceViewer"
+    - "ResizeHandles"
+
+# UI binding for semantic instantiation
+ui_binding:
+  component_path: "apps/mirror/app/components/MirrorBrowser.tsx"
+  renderer: "ObjectRenderer"
+  props_schema:
+    theme:
+      type: "string"
+      enum: ["mirror", "light", "dark"]
+      default: "mirror"
+    layout:
+      type: "object"
+      properties:
+        navigatorWidth: { type: "number", default: 192 }
+        surfaceWidth: { type: "number", default: 384 }
+        viewportSplit: { type: "number", default: 0.5 }
+
+# State representation for recursive stability
+state_vector:
+  dimensions: 128
+  features:
+    mirror_features:
+      active_components: "count of rendered components"
+      rendered_objects: "count of instantiated ontological objects"
+      viewport_states: "binary indicators for viewport activity"
+      pulse_count: "normalized event throughput"
+      theme: "encoded theme identifier"
+      layout_state: "encoded layout configuration"
+    interaction_features:
+      user_intents: "count of user-initiated actions"
+      navigation_depth: "current navigation level"
+      focus_mode: "binary indicator for focus state"
+      resize_events: "count of layout modifications"
+    temporal_features:
+      session_duration: "normalized time since initialization"
+      last_interaction: "time since last user action"
+      convergence_indicator: "recursive stability metric"
+
+# Pulse events emitted by Mirror
+events:
+  # Lifecycle events
+  mirror.initialized:
+    description: "Mirror browser has initialized"
+    payload:
+      theme: "string"
+      layout: "object"
+      timestamp: "datetime"
+    targets: ["core", "sage", "kronos", "shadow"]
+    
+  mirror.object.loading:
+    description: "Mirror is loading an ontological object"
+    payload:
+      object_id: "string"
+      object_type: "string"
+      timestamp: "datetime"
+    targets: ["core", "kronos"]
+    
+  mirror.object.rendered:
+    description: "Mirror has rendered an ontological object"
+    payload:
+      object_id: "string"
+      object_type: "string"
+      component_path: "string"
+      render_time_ms: "number"
+      timestamp: "datetime"
+    targets: ["core", "sage", "kronos", "shadow"]
+    
+  mirror.object.unmounted:
+    description: "Mirror has unmounted an ontological object"
+    payload:
+      object_id: "string"
+      object_type: "string"
+      lifetime_ms: "number"
+      timestamp: "datetime"
+    targets: ["core", "kronos", "shadow"]
+  
+  # User interaction events
+  mirror.intent:
+    description: "User has expressed an intent through Mirror"
+    payload:
+      intent_type: "string"
+      intent_data: "object"
+      source_component: "string"
+      timestamp: "datetime"
+    targets: ["core", "sage"]
+    
+  mirror.navigation:
+    description: "User has navigated within Mirror"
+    payload:
+      from_section: "string"
+      to_section: "string"
+      navigation_type: "string"
+      timestamp: "datetime"
+    targets: ["core", "kronos"]
+    
+  mirror.viewport.focus:
+    description: "User has focused a viewport"
+    payload:
+      viewport_id: "string"
+      content_type: "string"
+      timestamp: "datetime"
+    targets: ["core"]
+    
+  mirror.layout.modified:
+    description: "User has modified the layout"
+    payload:
+      modification_type: "string"
+      previous_state: "object"
+      new_state: "object"
+      timestamp: "datetime"
+    targets: ["core", "kronos"]
+  
+  # State observation events (for recursive stability)
+  mirror.state.captured:
+    description: "Mirror has captured its own state"
+    payload:
+      state_vector: "array[128]"
+      state_hash: "string"
+      iteration: "number"
+      timestamp: "datetime"
+    targets: ["core", "sage", "shadow"]
+    
+  mirror.convergence.detected:
+    description: "Mirror has detected recursive stability"
+    payload:
+      convergence_iteration: "number"
+      final_similarity: "number"
+      trust_coefficient: "number"
+      timestamp: "datetime"
+    targets: ["core", "sage", "kronos", "shadow"]
+
+# Pulse events Mirror listens to
+subscriptions:
+  core.reasoning.complete:
+    description: "Core has completed reasoning and has response for Mirror"
+    handler: "updateViewportContent"
+    
+  sage.validation.result:
+    description: "SAGE has validated an action"
+    handler: "handleValidationResult"
+    
+  sage.violation.detected:
+    description: "SAGE has detected a constitutional violation"
+    handler: "displayViolationWarning"
+    
+  core.ontology.updated:
+    description: "Core has updated an ontological object"
+    handler: "refreshRenderedObject"
+    
+  kronos.provenance.available:
+    description: "Kronos has provenance data available"
+    handler: "displayProvenance"
+    
+  pulsemesh.connection.status:
+    description: "PulseMesh connection status changed"
+    handler: "updateConnectionIndicator"
+
+# Governance integration
+governance:
+  sage_validation:
+    required: true
+    validation_points:
+      - "Before rendering any ontological object"
+      - "Before emitting user intent"
+      - "Before modifying layout state"
+      - "Before accessing external data"
+    validation_rules:
+      - "mirror.render.authorized"
+      - "mirror.intent.valid"
+      - "mirror.layout.permitted"
+      - "mirror.data.access.allowed"
+  
+  kronos_indexing:
+    enabled: true
+    indexed_events:
+      - "mirror.object.rendered"
+      - "mirror.intent"
+      - "mirror.navigation"
+      - "mirror.state.captured"
+    
+  shadow_logging:
+    enabled: true
+    log_level: "info"
+    logged_events:
+      - "mirror.initialized"
+      - "mirror.object.rendered"
+      - "mirror.intent"
+      - "mirror.convergence.detected"
+
+# Constitutional alignment
+constitution:
+  rights_enforced:
+    - "user_sovereignty"
+    - "data_ownership"
+    - "transparency"
+    - "privacy"
+  
+  obligations:
+    - "Validate all user intents with SAGE before execution"
+    - "Log all state changes to Shadow for provenance"
+    - "Provide clear feedback on governance decisions"
+    - "Maintain semantic coherence across interactions"
+    - "Preserve user data sovereignty at all times"
+  
+  constraints:
+    - "No direct API calls - all communication via Pulses"
+    - "No unauthorized data access"
+    - "No state modification without governance validation"
+    - "No rendering of unvalidated ontological objects"
+
+# Lifecycle hooks
+lifecycle:
+  on_load:
+    - emit: "mirror.initialized"
+      target: ["core", "sage", "kronos", "shadow"]
+    - validate: "mirror.initialization.permitted"
+      validator: "sage"
+    - subscribe: ["core.*", "sage.*", "kronos.*", "pulsemesh.*"]
+  
+  on_render:
+    - emit: "mirror.object.loading"
+      target: ["core", "kronos"]
+    - validate: "mirror.render.authorized"
+      validator: "sage"
+    - emit: "mirror.object.rendered"
+      target: ["core", "sage", "kronos", "shadow"]
+  
+  on_unmount:
+    - emit: "mirror.object.unmounted"
+      target: ["core", "kronos", "shadow"]
+    - cleanup: "unsubscribe_all"
+
+# Recursive stability configuration
+recursive_stability:
+  enabled: true
+  convergence_threshold: 0.999
+  convergence_window: 3
+  max_iterations: 30
+  state_capture_interval_ms: 1000
+  emit_convergence_events: true
+
+# Theme system (ontological themes)
+themes:
+  mirror:
+    name: "Mirror"
+    description: "Metallic chrome with shimmer effects"
+    colors:
+      primary: "#C0C0C0"
+      secondary: "#E8E8E8"
+      accent: "#A8A8A8"
+      background: "#F5F5F5"
+      surface: "#FFFFFF"
+      text: "#2C2C2C"
+    effects:
+      shimmer: true
+      reflection: true
+      gradient: "linear-gradient(135deg, #E8E8E8 0%, #C0C0C0 100%)"
+  
+  light:
+    name: "Light"
+    description: "Clean white canvas"
+    colors:
+      primary: "#3B82F6"
+      secondary: "#60A5FA"
+      accent: "#2563EB"
+      background: "#FFFFFF"
+      surface: "#F9FAFB"
+      text: "#111827"
+    effects:
+      shimmer: false
+      reflection: false
+      gradient: null
+  
+  dark:
+    name: "Dark"
+    description: "Dark mode with blue accents"
+    colors:
+      primary: "#60A5FA"
+      secondary: "#3B82F6"
+      accent: "#93C5FD"
+      background: "#111827"
+      surface: "#1F2937"
+      text: "#F9FAFB"
+    effects:
+      shimmer: false
+      reflection: false
+      gradient: null
+
+# Relationships to other ontological objects
+relationships:
+  contains:
+    - "Header"
+    - "Navigator"
+    - "Viewport"
+    - "SurfaceViewer"
+  
+  communicates_with:
+    - "Core"
+    - "SAGE"
+    - "Kronos"
+    - "Shadow"
+    - "PulseMesh"
+  
+  governed_by:
+    - "SAGE"
+    - "Constitution"
+  
+  observes:
+    - "self" # Recursive observation for stability
+
+# API surface (Pulse-based)
+api:
+  render_object:
+    description: "Request to render an ontological object"
+    pulse_channel: "mirror.api.render"
+    input:
+      object_id: "string"
+      props: "object"
+    output:
+      success: "boolean"
+      component_id: "string"
+      render_time_ms: "number"
+    validation: "sage.validate.render"
+  
+  emit_intent:
+    description: "Emit user intent for processing"
+    pulse_channel: "mirror.api.intent"
+    input:
+      intent_type: "string"
+      intent_data: "object"
+    output:
+      success: "boolean"
+      intent_id: "string"
+    validation: "sage.validate.intent"
+  
+  update_layout:
+    description: "Update browser layout configuration"
+    pulse_channel: "mirror.api.layout"
+    input:
+      layout_config: "object"
+    output:
+      success: "boolean"
+      new_layout: "object"
+    validation: "sage.validate.layout"
+  
+  capture_state:
+    description: "Capture current state for recursive observation"
+    pulse_channel: "mirror.api.state"
+    input:
+      include_history: "boolean"
+    output:
+      state_vector: "array[128]"
+      state_hash: "string"
+      timestamp: "datetime"
+    validation: "sage.validate.state_capture"
+
+# Performance metrics
+performance:
+  target_render_time_ms: 100
+  target_interaction_latency_ms: 50
+  max_concurrent_objects: 100
+  state_vector_generation_time_ms: 10
+
+# Security constraints
+security:
+  authentication_required: true
+  authorization_provider: "sage"
+  data_encryption: true
+  audit_logging: true
+  constitutional_enforcement: true
+
+# Documentation
+documentation:
+  overview: "Mirror is the semantic browser interface for the Sovereignty Stack"
+  architecture: "Ontology-first design with Pulse-native communication"
+  usage: "Instantiate via ObjectRenderer with theme and layout props"
+  examples:
+    - "<ObjectRenderer object='mirror' props={{theme: 'mirror'}} />"
+    - "usePulse('mirror.intent', handleIntent)"
+    - "emitPulse('mirror.navigation', {from: 'home', to: 'dashboard'})"
