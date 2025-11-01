@@ -1,0 +1,271 @@
+metadata:
+  name: scribe_results
+  version: 1.0.0
+  description: Ontological schema for Scribe Fusion Transformer validation results
+  namespace: scribe
+  created: 2024-11-01
+  author: Mirror/Core
+
+# Core ontological objects for Scribe validation results
+
+objects:
+  # Individual fusion result from a single sample
+  fusion_result:
+    essence: "The outcome of fusing four modality embeddings into a unified Wisp"
+    properties:
+      sample_id:
+        type: string
+        essence: "Unique identifier for the test sample"
+      
+      category:
+        type: enum
+        values: [personal_memory, creative_fiction, conversational_dialogue, technical_documentation]
+        essence: "Semantic category of the input text"
+      
+      # Coherence metrics
+      coherence:
+        type: object
+        essence: "Semantic preservation between input modalities and fused Wisp"
+        properties:
+          mean:
+            type: float
+            range: [0.0, 1.0]
+            essence: "Average cosine similarity across all four modalities"
+          per_modality:
+            type: array
+            length: 4
+            essence: "Individual coherence scores [narrative, modal, temporal, role]"
+      
+      # Semantic drift
+      semantic_drift:
+        type: float
+        essence: "L2 distance between Wisp and narrative embedding (primary modality)"
+      
+      # Attention patterns
+      attention_weights:
+        type: matrix
+        shape: [8, 4]
+        essence: "Attention weights from 8 heads across 4 modalities"
+        semantics: "Reveals how each attention head weights the modalities during fusion"
+      
+      # Performance
+      latency_ms:
+        type: float
+        essence: "Composition time in milliseconds"
+      
+      # Embeddings (optional, for visualization)
+      embeddings:
+        type: object
+        optional: true
+        properties:
+          narrative:
+            type: vector
+            dimension: 384
+          modal:
+            type: vector
+            dimension: 384
+          temporal:
+            type: vector
+            dimension: 384
+          role:
+            type: vector
+            dimension: 384
+          wisp:
+            type: vector
+            dimension: 384
+  
+  # Baseline comparison result (MiniLM)
+  baseline_result:
+    essence: "Baseline embedding result for comparison"
+    properties:
+      coherence:
+        type: float
+        range: [0.0, 1.0]
+      semantic_drift:
+        type: float
+      latency_ms:
+        type: float
+  
+  # Statistical summary across batch
+  statistical_summary:
+    essence: "Aggregate statistics and hypothesis testing across a batch of samples"
+    properties:
+      sample_count:
+        type: integer
+        essence: "Number of samples in the batch"
+      
+      # Coherence statistics
+      coherence:
+        type: object
+        properties:
+          scribe:
+            type: descriptive_stats
+            essence: "Scribe coherence distribution"
+          baseline:
+            type: descriptive_stats
+            essence: "Baseline coherence distribution"
+      
+      # Semantic drift statistics
+      semantic_drift:
+        type: object
+        properties:
+          scribe:
+            type: descriptive_stats
+          baseline:
+            type: descriptive_stats
+      
+      # Latency statistics
+      latency:
+        type: object
+        properties:
+          scribe:
+            type: descriptive_stats
+          baseline:
+            type: descriptive_stats
+      
+      # Hypothesis tests
+      hypothesis_tests:
+        type: object
+        essence: "Statistical significance testing"
+        properties:
+          coherence:
+            type: hypothesis_test_result
+          semantic_drift:
+            type: hypothesis_test_result
+      
+      # Category breakdown
+      by_category:
+        type: map
+        key_type: string
+        value_type: category_stats
+        essence: "Performance breakdown by semantic category"
+  
+  # Batch metadata
+  batch_metadata:
+    essence: "Context about the validation batch"
+    properties:
+      batch_size:
+        type: integer
+      category_filter:
+        type: string
+        optional: true
+      timestamp:
+        type: datetime
+      duration_seconds:
+        type: float
+
+# Composite types
+types:
+  descriptive_stats:
+    properties:
+      mean:
+        type: float
+      std:
+        type: float
+      min:
+        type: float
+      max:
+        type: float
+      confidence_interval_95:
+        type: array
+        length: 2
+        essence: "[lower_bound, upper_bound]"
+  
+  hypothesis_test_result:
+    properties:
+      t_statistic:
+        type: float
+      p_value:
+        type: float
+      effect_size_cohens_d:
+        type: float
+      interpretation:
+        type: string
+        essence: "Human-readable conclusion"
+  
+  category_stats:
+    properties:
+      count:
+        type: integer
+      scribe_mean_coherence:
+        type: float
+      baseline_mean_coherence:
+        type: float
+
+# Pulse event schemas
+pulse_events:
+  # Emitted for each sample processed
+  scribe.result.sample:
+    essence: "Individual sample result during batch processing"
+    payload:
+      - fusion_result
+      - baseline_result
+      - progress:
+          current: integer
+          total: integer
+  
+  # Emitted when batch completes
+  scribe.result.batch:
+    essence: "Complete batch results with statistical analysis"
+    payload:
+      - batch_metadata
+      - results:
+          type: array
+          items: fusion_result
+      - baselines:
+          type: array
+          items: baseline_result
+      - statistics: statistical_summary
+  
+  # Request to run batch validation
+  scribe.validate.request:
+    essence: "Request to run batch validation"
+    payload:
+      - batch_size: integer
+      - category_filter:
+          type: string
+          optional: true
+
+# Visual mappings (how ontological data maps to visual properties)
+visual_mappings:
+  fusion_result:
+    # Coherence maps to color intensity
+    coherence.mean:
+      visual_property: color_intensity
+      range: [0.85, 1.0]
+      color_scale: [red, yellow, green]
+    
+    # Attention weights map to heatmap
+    attention_weights:
+      visual_property: heatmap
+      dimensions: [8_heads, 4_modalities]
+    
+    # Semantic drift maps to distance
+    semantic_drift:
+      visual_property: distance
+      range: [0.0, 2.0]
+  
+  statistical_summary:
+    # Distributions map to violin plots
+    coherence:
+      visual_property: violin_plot
+      x_axis: [scribe, baseline]
+      y_axis: coherence_score
+    
+    # Hypothesis tests map to significance indicators
+    hypothesis_tests:
+      visual_property: significance_badge
+      threshold: 0.05
+
+# Semantic constraints
+constraints:
+  # Coherence must be high for valid fusion
+  coherence_threshold:
+    property: fusion_result.coherence.mean
+    minimum: 0.85
+    essence: "Fusion must preserve semantic meaning"
+  
+  # Scribe should outperform baseline
+  superiority:
+    comparison: fusion_result.coherence.mean > baseline_result.coherence
+    essence: "Specialized fusion should exceed naive concatenation"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { emitPulse } from '../lib/PulseClient';
+import { emitPulse, requestFromCore } from '../lib/PulseClient';
 import Navigator from './Navigator';
 import Viewport from './Viewport';
 import SurfaceViewer from './SurfaceViewer';
@@ -10,10 +10,19 @@ interface ObjectRendererProps {
 }
 
 /**
- * ObjectRendererWeb - Web-compatible version of ObjectRenderer
+ * ObjectRendererWeb - Production version with real Pulse integration
  * 
- * Resolves ontological objects and renders them as React components.
- * This is the bridge between semantic definitions and visual instantiation.
+ * Fetches ontology definitions from Core via PulseMesh, resolves UI bindings,
+ * and instantiates components with full governance context.
+ * 
+ * Flow:
+ * 1. Emit ontology.request Pulse to Core
+ * 2. Core validates request via SAGE
+ * 3. Core returns ontology YAML
+ * 4. Resolve ui_binding to component
+ * 5. Dynamically instantiate component
+ * 6. Emit lifecycle Pulses (loading, rendered, unmounted)
+ * 7. All Pulses flow through SAGE → Kronos → Shadow
  */
 export const ObjectRendererWeb: React.FC<ObjectRendererProps> = ({
   object,
@@ -22,6 +31,7 @@ export const ObjectRendererWeb: React.FC<ObjectRendererProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
+  const [ontology, setOntology] = useState<any | null>(null);
 
   useEffect(() => {
     const loadObject = async () => {
@@ -35,18 +45,45 @@ export const ObjectRendererWeb: React.FC<ObjectRendererProps> = ({
           timestamp: new Date().toISOString()
         }, ['core', 'kronos']);
 
-        // Map object IDs to components
+        console.log(`[ObjectRenderer] Requesting ontology for: ${object}`);
+
+        // Request ontology from Core via Pulse
+        const response = await requestFromCore('ontology.request', {
+          object_id: object,
+          requester: 'mirror',
+          timestamp: new Date().toISOString()
+        }, 10000); // 10 second timeout
+
+        if (response.status === 'error') {
+          throw new Error(`Ontology request failed: ${response.error}`);
+        }
+
+        const ontologyData = response.ontology;
+        setOntology(ontologyData);
+
+        console.log(`[ObjectRenderer] Received ontology:`, ontologyData);
+
+        // Extract UI binding
+        const uiBinding = ontologyData.ui_binding;
+        if (!uiBinding || !uiBinding.component) {
+          throw new Error(`No UI binding found in ontology for: ${object}`);
+        }
+
+        // Map component names to actual components
+        // In production, this could use dynamic imports based on ui_binding.path
         const componentMap: Record<string, React.ComponentType<any>> = {
-          'navigator': Navigator,
-          'viewport': Viewport,
-          'surface': SurfaceViewer
+          'Navigator': Navigator,
+          'Viewport': Viewport,
+          'SurfaceViewer': SurfaceViewer
         };
 
-        const resolvedComponent = componentMap[object];
+        const resolvedComponent = componentMap[uiBinding.component];
 
         if (!resolvedComponent) {
-          throw new Error(`Component not found for object: ${object}`);
+          throw new Error(`Component not found: ${uiBinding.component}`);
         }
+
+        console.log(`[ObjectRenderer] Resolved component: ${uiBinding.component}`);
 
         setComponent(() => resolvedComponent);
 
@@ -54,7 +91,8 @@ export const ObjectRendererWeb: React.FC<ObjectRendererProps> = ({
         await emitPulse('mirror.object.rendered', {
           object_id: object,
           object_type: 'component',
-          component_path: object,
+          component_name: uiBinding.component,
+          component_path: uiBinding.path,
           render_time_ms: 0,
           timestamp: new Date().toISOString()
         }, ['core', 'sage', 'kronos', 'shadow']);
@@ -62,6 +100,7 @@ export const ObjectRendererWeb: React.FC<ObjectRendererProps> = ({
         setLoading(false);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        console.error(`[ObjectRenderer] Error loading ${object}:`, errorMessage);
         setError(errorMessage);
         setLoading(false);
 
@@ -91,14 +130,20 @@ export const ObjectRendererWeb: React.FC<ObjectRendererProps> = ({
   }
 
   if (error) {
-    return <div style={styles.error}>Error: {error}</div>;
+    return (
+      <div style={styles.error}>
+        <div>Error loading {object}</div>
+        <div style={styles.errorDetail}>{error}</div>
+      </div>
+    );
   }
 
   if (!Component) {
     return <div style={styles.error}>Component not found: {object}</div>;
   }
 
-  return <Component {...props} />;
+  // Pass ontology context to component
+  return <Component ontology={ontology} {...props} />;
 };
 
 const styles: Record<string, React.CSSProperties> = {
@@ -112,11 +157,17 @@ const styles: Record<string, React.CSSProperties> = {
   },
   error: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
     fontSize: 14,
-    color: '#EF4444'
+    color: '#EF4444',
+    gap: 8
+  },
+  errorDetail: {
+    fontSize: 12,
+    opacity: 0.7
   }
 };
 

@@ -93,6 +93,41 @@ class ShadowLedger:
                 "timestamp": datetime.utcnow().isoformat()
             })
         
+        @bus.on("scribe.result.batch")
+        async def on_scribe_result(pulse):
+            """Store Scribe test evidence and emit to Kronos"""
+            if not self.is_awake:
+                return
+            
+            payload = pulse.get("payload", {})
+            
+            # Store test evidence
+            await self.store_test_evidence(payload)
+            
+            logger.info(f"[Shadow] Stored test evidence: {payload.get('test_id', 'unknown')}")
+        
+        @bus.on("shadow.evidence.query")
+        async def on_evidence_query(pulse):
+            """Handle test evidence queries"""
+            if not self.is_awake:
+                return
+            
+            payload = pulse.get("payload", {})
+            limit = payload.get("limit", 10)
+            mode = payload.get("mode")
+            category = payload.get("category")
+            
+            results = self.query_test_evidence(limit=limit, mode=mode, category=category)
+            
+            await bus.emit("shadow.evidence.result", {
+                "request_id": pulse.get("id"),
+                "results": results,
+                "count": len(results),
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            logger.info(f"[Shadow] Evidence query returned {len(results)} results")
+        
         @bus.on("system.health_check")
         async def on_health_check(pulse):
             """Respond to health check requests"""
@@ -145,6 +180,41 @@ class ShadowLedger:
         
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_timestamp ON provenance_log(timestamp)
+        """)
+        
+        # Create test_evidence table for Scribe/MiniLM empirical measurements
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS test_evidence (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id TEXT UNIQUE NOT NULL,
+                timestamp TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                batch_size INTEGER NOT NULL,
+                category TEXT,
+                sample_count INTEGER NOT NULL,
+                scribe_coherence_mean REAL,
+                scribe_coherence_std REAL,
+                minilm_coherence_mean REAL,
+                minilm_coherence_std REAL,
+                p_value REAL,
+                effect_size REAL,
+                sample_results TEXT,
+                vectors_blob BLOB,
+                metadata TEXT,
+                logged_at TEXT NOT NULL
+            )
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_test_timestamp ON test_evidence(timestamp DESC)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_test_mode ON test_evidence(mode)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_test_category ON test_evidence(category)
         """)
         
         conn.commit()
@@ -357,3 +427,164 @@ def log_provenance_event(
         derived_from=derived_from,
         metadata=metadata
     )
+
+    async def store_test_evidence(self, evidence: Dict[str, Any]):
+        """
+        Store test evidence from Scribe/MiniLM validation runs.
+        
+        Args:
+            evidence: Ontological test result object from scribe.result.batch Pulse
+        """
+        try:
+            import pickle
+            
+            test_id = evidence.get('test_id', f"test_{datetime.utcnow().timestamp()}")
+            timestamp = evidence.get('timestamp', datetime.utcnow().isoformat())
+            mode = evidence.get('mode', 'internal')  # 'internal' or 'pulse'
+            
+            batch_metadata = evidence.get('batch_metadata', {})
+            batch_size = batch_metadata.get('batch_size', 0)
+            category = batch_metadata.get('category_filter', 'all')
+            
+            sample_results = evidence.get('sample_results', [])
+            sample_count = len(sample_results)
+            
+            statistics = evidence.get('statistical_summary', {})
+            scribe_stats = statistics.get('scribe_coherence', {})
+            minilm_stats = statistics.get('minilm_coherence', {})
+            hypothesis = statistics.get('hypothesis_tests', {})
+            
+            # Serialize sample results and vectors
+            sample_results_json = json.dumps(sample_results)
+            
+            # Extract and serialize vectors
+            vectors = {
+                'scribe_embeddings': [s.get('fusion_result', {}).get('wisp_embedding') for s in sample_results],
+                'minilm_embeddings': [s.get('baseline_result', {}).get('embedding') for s in sample_results]
+            }
+            vectors_blob = pickle.dumps(vectors)
+            
+            metadata = {
+                'ontology': evidence.get('ontology', 'scribe_results'),
+                'category_breakdown': statistics.get('category_breakdown', {}),
+                'latency_stats': statistics.get('latency', {})
+            }
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT OR REPLACE INTO test_evidence (
+                    test_id, timestamp, mode, batch_size, category, sample_count,
+                    scribe_coherence_mean, scribe_coherence_std,
+                    minilm_coherence_mean, minilm_coherence_std,
+                    p_value, effect_size,
+                    sample_results, vectors_blob, metadata, logged_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                test_id,
+                timestamp,
+                mode,
+                batch_size,
+                category,
+                sample_count,
+                scribe_stats.get('mean'),
+                scribe_stats.get('std'),
+                minilm_stats.get('mean'),
+                minilm_stats.get('std'),
+                hypothesis.get('p_value'),
+                hypothesis.get('effect_size'),
+                sample_results_json,
+                vectors_blob,
+                json.dumps(metadata),
+                datetime.utcnow().isoformat()
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"[Shadow] Stored test evidence: {test_id} ({mode} mode, {sample_count} samples)")
+            
+            # Emit provenance event for Kronos indexing
+            await bus.emit("shadow.evidence.stored", {
+                "test_id": test_id,
+                "mode": mode,
+                "sample_count": sample_count,
+                "timestamp": timestamp
+            })
+            
+        except Exception as e:
+            logger.error(f"[Shadow] Error storing test evidence: {e}")
+    
+    def query_test_evidence(self, limit: int = 10, mode: str = None, category: str = None) -> List[Dict]:
+        """
+        Query test evidence from Shadow Ledger.
+        
+        Args:
+            limit: Maximum number of results (default: 10)
+            mode: Filter by mode ('internal' or 'pulse')
+            category: Filter by category
+            
+        Returns:
+            List of test evidence records
+        """
+        try:
+            import pickle
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            query = "SELECT * FROM test_evidence WHERE 1=1"
+            params = []
+            
+            if mode:
+                query += " AND mode = ?"
+                params.append(mode)
+            
+            if category and category != 'all':
+                query += " AND category = ?"
+                params.append(category)
+            
+            query += " ORDER BY timestamp DESC LIMIT ?"
+            params.append(limit)
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            results = []
+            for row in rows:
+                # Deserialize vectors
+                vectors = pickle.loads(row[14]) if row[14] else {}
+                
+                results.append({
+                    "test_id": row[1],
+                    "timestamp": row[2],
+                    "mode": row[3],
+                    "batch_size": row[4],
+                    "category": row[5],
+                    "sample_count": row[6],
+                    "scribe_coherence": {
+                        "mean": row[7],
+                        "std": row[8]
+                    },
+                    "minilm_coherence": {
+                        "mean": row[9],
+                        "std": row[10]
+                    },
+                    "hypothesis_tests": {
+                        "p_value": row[11],
+                        "effect_size": row[12]
+                    },
+                    "sample_results": json.loads(row[13]) if row[13] else [],
+                    "vectors": vectors,
+                    "metadata": json.loads(row[15]) if row[15] else {},
+                    "logged_at": row[16]
+                })
+            
+            conn.close()
+            return results
+            
+        except Exception as e:
+            logger.error(f"[Shadow] Error querying test evidence: {e}")
+            return []
+

@@ -1,0 +1,115 @@
+name: scribe
+type: service
+version: "1.0"
+description: "Scribe Fusion Transformer - Multimodal Wisp composition service"
+
+purpose: |
+  Scribe fuses four modal embeddings (narrative, modal, temporal, role) into a unified 
+  384-dimensional Wisp embedding using a trained Transformer model. This enables coherent 
+  identity representation across multiple modalities within the Sovereignty Stack.
+
+architecture:
+  model: "ScribeFusionTransformer"
+  parameters: 12_000_000
+  embedding_dim: 384
+  input_modalities:
+    - narrative: "Base narrative embedding"
+    - modal: "Modality-specific embedding (experiential, imaginative, interactive, instructional)"
+    - temporal: "Temporal context embedding (past, present, future)"
+    - role: "Role/perspective embedding (first-person, third-person, instructional, multi-voice)"
+  output: "Fused 384-dim Wisp embedding"
+  
+  layers:
+    - projection: "Linear projection for each modality"
+    - positional: "Modality-specific positional embeddings"
+    - transformer: "4-layer Transformer encoder (8 heads, 1536 FFN dim)"
+    - fusion: "Multi-head attention across modalities"
+    - output: "Feedforward projection with residual connections"
+
+training:
+  dataset: "Scribe v0.1 Synthetic Dataset"
+  samples: 18_884
+  categories:
+    - personal_memory: 4_981
+    - creative_fiction: 4_741
+    - conversational_dialogue: 4_674
+    - technical_documentation: 4_488
+  loss_function: "Contrastive Loss (InfoNCE)"
+  target_coherence: 0.90
+  epochs: 10
+  batch_size: 80
+  learning_rate: 0.0001
+
+pulsemesh:
+  topic: "scribe"
+  events:
+    compose:
+      type: "scribe.compose"
+      source: "mirror"
+      target: "scribe"
+      payload:
+        narrative: "[384-dim vector]"
+        modal: "[384-dim vector]"
+        temporal: "[384-dim vector]"
+        role: "[384-dim vector]"
+      description: "Request Wisp composition from 4 modal embeddings"
+      
+    composed:
+      type: "scribe.composed"
+      source: "scribe"
+      target: "mirror"
+      payload:
+        wisp: "[384-dim fused vector]"
+        coherence: "float (0.0-1.0)"
+        timestamp: "ISO 8601"
+        model_version: "string"
+      description: "Return fused Wisp embedding with coherence score"
+      
+    error:
+      type: "scribe.error"
+      source: "scribe"
+      target: "mirror"
+      payload:
+        error: "string"
+        timestamp: "ISO 8601"
+      description: "Composition failed"
+
+integration:
+  services:
+    - logos: "Wisp-based authentication"
+    - core: "Ontology-driven identity"
+    - sage: "Coherence validation"
+    - kronos: "Temporal identity tracking"
+    - shadow: "Wisp provenance logging"
+
+metrics:
+  coherence: "Cosine similarity between fused Wisp and narrative embedding"
+  drift: "L2 distance from target embedding"
+  latency: "Composition time (ms)"
+  throughput: "Wisps/second"
+
+deployment:
+  service: "scribe_listener.py"
+  port: null  # Pulse-native, no HTTP
+  dependencies:
+    - torch: ">=2.0.0"
+    - websockets: ">=10.0"
+  model_path: "/home/ubuntu/sov/core/models/scribe_fusion_v1.0_production.pt"
+  device: "cuda (preferred) or cpu"
+
+governance:
+  sage_rules:
+    - "Wisp coherence must be >= 0.85"
+    - "All 4 modal embeddings must be 384-dimensional"
+    - "Composition latency must be < 100ms"
+  
+  constitutional_alignment:
+    - "Preserve narrative meaning across fusion"
+    - "Maintain temporal context integrity"
+    - "Respect role/perspective boundaries"
+
+metadata:
+  author: "Sovereignty Foundation"
+  created: "2025-10-30"
+  status: "active"
+  category: "ml_service"

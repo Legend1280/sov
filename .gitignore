@@ -89,3 +89,4 @@ temp/
 *.pem
 secrets.json
 credentials.json
+core/models/*.pt

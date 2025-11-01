@@ -1,5 +1,16 @@
 # Mirror Framework v1.0 - Refactor Complete ✅
 
+## Mirror Production Integration (NEW - HIGHEST PRIORITY)
+- [ ] Connect PulseClient to real PulseMesh WebSocket (ws://localhost:8088)
+- [ ] Implement SHA256 signature handshake in PulseClient
+- [ ] Build Core API endpoint for ontology requests via Pulse
+- [ ] Update ObjectRenderer to fetch ontology from Core (not hardcoded map)
+- [ ] Test end-to-end Pulse flow through PulseMesh
+- [ ] Validate SAGE governance integration
+- [ ] Validate Kronos indexing integration
+- [ ] Validate Shadow logging integration
+- [ ] Document production integration
+
 ## Phase 1: Foundation (Core Systems) ✅
 - [x] Create folder structure (/core, /modules, /components)
 - [x] Extract LayoutManager.ts (centralized layout state with Zustand)

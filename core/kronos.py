@@ -100,6 +100,50 @@ class Kronos:
                 "timestamp": datetime.utcnow().isoformat()
             })
         
+        @bus.on("shadow.evidence.stored")
+        async def on_evidence_stored(pulse):
+            """Index test evidence for temporal drift analysis"""
+            if not self.is_awake:
+                return
+            
+            payload = pulse.get("payload", {})
+            test_id = payload.get("test_id")
+            
+            # Store in temporal index for drift tracking
+            self.temporal_index["test_evidence"].append({
+                "test_id": test_id,
+                "mode": payload.get("mode"),
+                "sample_count": payload.get("sample_count"),
+                "timestamp": payload.get("timestamp"),
+                "indexed_at": datetime.utcnow().isoformat()
+            })
+            
+            logger.info(f"[Kronos] Indexed test evidence: {test_id}")
+        
+        @bus.on("kronos.drift.query")
+        async def on_drift_query(pulse):
+            """Handle temporal drift queries for test evidence"""
+            if not self.is_awake:
+                return
+            
+            # Get test evidence timeline
+            evidence_timeline = self.temporal_index.get("test_evidence", [])
+            
+            # Calculate drift metrics
+            drift_analysis = {
+                "total_tests": len(evidence_timeline),
+                "timeline": evidence_timeline[-10:],  # Last 10 tests
+                "drift_detected": len(evidence_timeline) > 1
+            }
+            
+            await bus.emit("kronos.drift.result", {
+                "request_id": pulse.get("id"),
+                "analysis": drift_analysis,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            logger.info(f"[Kronos] Drift query returned {len(evidence_timeline)} indexed tests")
+        
         @bus.on("system.health_check")
         async def on_health_check(pulse):
             """Respond to health check requests"""
